@@ -3,3 +3,5 @@ obj/
 *.zip
 native/launch/CamDisplayLaunch
 tools/CamProbe/CamProbe.dll
+lib/*.dll
+.superpowers/

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+        Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+        <ProjectGuid>{7C1D5A20-3B8E-4F61-9E2A-CA0D15B1A7E3}</ProjectGuid>
+        <OutputType>Library</OutputType>
+        <AppDesignerFolder>Properties</AppDesignerFolder>
+        <RootNamespace>CamDisplay</RootNamespace>
+        <AssemblyName>CamDisplay</AssemblyName>
+        <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+        <FileAlignment>512</FileAlignment>
+        <Deterministic>true</Deterministic>
+        <GameRoot Condition=" '$(GameRoot)' == '' ">$(HOME)/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice</GameRoot>
+        <AdofaiManaged Condition=" '$(AdofaiManaged)' == '' ">$(GameRoot)/ADanceOfFireAndIce.app/Contents/Resources/Data/Managed</AdofaiManaged>
+        <!-- ML (MelonLoader, the default) or UMM. The UMM build swaps the entry point and takes a
+             distinct assembly name: under MelonLoader's UMM bridge, a second "CamDisplay" would
+             resolve to the already-loaded ML assembly (Quartz hit this). -->
+        <LoaderTarget Condition=" '$(LoaderTarget)' == '' ">ML</LoaderTarget>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <Optimize>false</Optimize>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <DefineConstants>TRACE</DefineConstants>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(LoaderTarget)' == 'UMM' ">
+        <DefineConstants>$(DefineConstants);CAMDISPLAY_UMM</DefineConstants>
+        <AssemblyName>CamDisplayUmm</AssemblyName>
+        <BaseIntermediateOutputPath>obj\umm\</BaseIntermediateOutputPath>
+        <IntermediateOutputPath>obj\umm\$(Configuration)\</IntermediateOutputPath>
+        <OutputPath>bin\umm\$(Configuration)\</OutputPath>
+    </PropertyGroup>
+    <ItemDefinitionGroup>
+        <Reference><Private>False</Private></Reference>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <Reference Include="System" />
+        <Reference Include="System.Core" />
+        <Reference Include="netstandard"><HintPath>$(AdofaiManaged)/netstandard.dll</HintPath></Reference>
+        <Reference Include="UnityEngine"><HintPath>$(AdofaiManaged)/UnityEngine.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.CoreModule"><HintPath>$(AdofaiManaged)/UnityEngine.CoreModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.AudioModule"><HintPath>$(AdofaiManaged)/UnityEngine.AudioModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.UIModule"><HintPath>$(AdofaiManaged)/UnityEngine.UIModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.UI"><HintPath>$(AdofaiManaged)/UnityEngine.UI.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.UIElementsModule"><HintPath>$(AdofaiManaged)/UnityEngine.UIElementsModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(AdofaiManaged)/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(AdofaiManaged)/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(AdofaiManaged)/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(AdofaiManaged)/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(AdofaiManaged)/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
+        <Reference Include="PrismLib"><HintPath>$(MSBuildProjectDirectory)/../lib/PrismLib.dll</HintPath></Reference>
+        <Reference Include="PrismLib.UI"><HintPath>$(MSBuildProjectDirectory)/../lib/PrismLib.UI.dll</HintPath></Reference>
+    </ItemGroup>
+    <ItemGroup Condition=" '$(LoaderTarget)' == 'ML' ">
+        <Reference Include="MelonLoader"><HintPath>$(GameRoot)/MelonLoader/net35/MelonLoader.dll</HintPath></Reference>
+    </ItemGroup>
+    <ItemGroup Condition=" '$(LoaderTarget)' == 'UMM' ">
+        <Reference Include="UnityModManager"><HintPath>$(GameRoot)/UserLibs/UnityModManager.dll</HintPath></Reference>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="Main.cs" />
+        <Compile Include="LoaderMl.cs" />
+        <Compile Include="LoaderUmm.cs" />
+        <Compile Include="Util\Log.cs" />
+        <Compile Include="Util\PrismBootstrap.cs" />
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,10 @@
+{
+  "Id": "CamDisplay",
+  "DisplayName": "CamDisplay",
+  "Author": "PrismMods",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.32.4.0",
+  "AssemblyName": "CamDisplayUmm.dll",
+  "EntryMethod": "CamDisplay.LoaderUmm.Load",
+  "HomePage": "https://github.com/PrismMods/CamDisplay"
+}
