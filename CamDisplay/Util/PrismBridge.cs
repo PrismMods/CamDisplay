@@ -140,6 +140,8 @@ namespace CamDisplay
 
         internal static bool EditorOpen => _editor != null && _editor.Visible;
 
+        internal static void CloseLayoutEditor() { if (_editor != null) _editor.Visible = false; }
+
         private static IEnumerable<EditTarget> OwnTargets() { yield return CamTarget(); }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

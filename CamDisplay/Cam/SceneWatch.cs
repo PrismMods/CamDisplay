@@ -28,6 +28,17 @@ namespace CamDisplay
             return _last = Read();
         }
 
+        /// The raw inputs, for logging and the DEBUG self-test.
+        internal static string Describe()
+        {
+            Hook();
+            object c = null;
+            try { c = _controller?.Invoke(); } catch { }
+            bool w = false, p = false;
+            if (c != null) { try { w = _gameworld != null && _gameworld(c); } catch { } try { p = _paused != null && _paused(c); } catch { } }
+            return "scene=" + _scene + " controller=" + (c != null) + " gameworld=" + w + " paused=" + p;
+        }
+
         private static CamContextKind Read()
         {
             Hook();
@@ -48,7 +59,7 @@ namespace CamDisplay
             {
                 _hooked = true;
                 _scene = SceneManager.GetActiveScene().name ?? "";
-                SceneManager.activeSceneChanged += (a, b) => _scene = b.name ?? "";
+                SceneManager.activeSceneChanged += (a, b) => { _scene = b.name ?? ""; _at = -100; };   // a new scene is never answered from the old one's cache
             }
             if (_looked) return;
             _looked = true;

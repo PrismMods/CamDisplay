@@ -43,6 +43,9 @@ namespace CamDisplay
             Feed = new CamFeed();
             Feed.StatusChanged += PrismBridge.RefreshSettings;
             Feed.Restart(Settings);
+#if DEBUG
+            SelfTest.MaybeStart();
+#endif
         }
 
         internal static void Update()
