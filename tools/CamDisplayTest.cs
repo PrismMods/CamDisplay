@@ -56,6 +56,14 @@ static class CamDisplayTest
         d.CropL = 0.25f; d.CropR = 0.25f; b = CamGeometry.Box(d, 1920, 1080, 1280, 720); Check(Near(b[2], 240) && Near(b[3], 270), "crop narrows the box, height kept");
         var uv = CamGeometry.Uv(d); Check(Near(uv[0], 0.75f) && Near(uv[2], -0.5f) && Near(uv[1], 1f) && Near(uv[3], -1f), "uv: crop then both flips");
         d.FlipH = d.FlipV = false; uv = CamGeometry.Uv(d); Check(Near(uv[0], 0.25f) && Near(uv[2], 0.5f) && Near(uv[1], 0f) && Near(uv[3], 1f), "uv without flips is the crop rect");
+        d.FlipH = d.FlipV = true; d.CropL = 0.2f; d.CropR = 0f; d.CropB = 0.1f;
+        uv = CamGeometry.Uv(d);
+        Check(Near(uv[0], 0.8f) && Near(uv[2], -0.8f), "crop is in displayed space: under FlipH, cropping the left trims the displayed left");
+        Check(Near(uv[1], 0.9f) && Near(uv[3], -0.9f), "and under FlipV, cropping the bottom trims the displayed bottom");
+        d.CropL = d.CropB = 0f;
+        d.CropT = 0.2f; b = CamGeometry.Box(d, 1920, 1080, 1280, 720);
+        Check(Near(b[3], 216f) && Near(b[2], 480f), "a vertical crop trims the height and keeps the width (no zoom)");
+        d.CropT = 0f;
         d.FlipH = d.FlipV = true; d.CropL = d.CropR = 0;
         CamGeometry.MoveTo(d, 960, 540, 1920, 1080); b = CamGeometry.Box(d, 1920, 1080, 1280, 720); Check(Near(b[0], 960) && Near(b[1], 540), "MoveTo places the centre");
         CamGeometry.MoveTo(d, 1920, 1080, 3840, 2160); b = CamGeometry.Box(d, 3840, 2160, 1280, 720); Check(Near(b[0], 1920) && Near(b[1], 1080), "MoveTo works in screen px at any resolution");

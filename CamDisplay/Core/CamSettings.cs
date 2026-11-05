@@ -20,10 +20,10 @@ namespace CamDisplay
         public int Anchor = 8;                   // 0-8 from the top-left; 8 = bottom-right
         public bool AnchorClosest = true;
         public float OffsetX = -260f, OffsetY = 160f;   // centre minus anchor point, reference px
-        public float BaseHeight = 270f;                  // cam height at Scale 1, reference px
+        public float BaseHeight = 270f;                  // uncropped cam height at Scale 1, reference px
         public float Scale = 1f;
         public float Rotation;                           // degrees, counter-clockwise
-        public float CropL, CropB, CropR, CropT;         // fraction trimmed from each edge
+        public float CropL, CropB, CropR, CropT;         // fraction trimmed from each DISPLAYED edge
 
         /// Defaults for a missing file; defaults plus wasBad for one that would not parse.
         internal static CamSettings FromJson(string json, Func<string, CamSettings> parse, out bool wasBad)

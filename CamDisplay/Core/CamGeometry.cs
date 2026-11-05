@@ -20,8 +20,11 @@ namespace CamDisplay
             float k = screenH / RefH;
             float visW = 1f - s.CropL - s.CropR, visH = 1f - s.CropB - s.CropT;
             // Unity reports 16x16 until the first frame arrives; assume 16:9 until then.
-            float aspect = srcW > 16f && srcH > 16f ? srcW * visW / (srcH * visH) : 16f / 9f * visW / visH;
-            float h = s.BaseHeight * s.Scale * k, w = h * aspect;
+            float srcAspect = srcW > 16f && srcH > 16f ? srcW / srcH : 16f / 9f;
+            // BaseHeight x Scale is the WHOLE source's height: cropping trims the box, never zooms
+            // the picture (the layout editor's crop ghost relies on that).
+            float full = s.BaseHeight * s.Scale * k;
+            float h = full * visH, w = full * srcAspect * visW;
             var a = AnchorPoint(s.Anchor, screenW, screenH);
             return new[] { a[0] + s.OffsetX * k, a[1] + s.OffsetY * k, w, h };
         }
@@ -44,13 +47,14 @@ namespace CamDisplay
             MoveTo(s, cx, cy, screenW, screenH);
         }
 
-        /// RawImage.uvRect {x, y, w, h}: the crop, mirrored by negative extents for the flips.
+        /// RawImage.uvRect {x, y, w, h}. Crop is in DISPLAYED space (what the editor's handles trim):
+        /// under a flip the displayed left is the source's right, so the rect starts from the far side.
         internal static float[] Uv(CamSettings s)
         {
-            float x = s.CropL, y = s.CropB, w = 1f - s.CropL - s.CropR, h = 1f - s.CropB - s.CropT;
-            if (s.FlipH) { x += w; w = -w; }
-            if (s.FlipV) { y += h; h = -h; }
-            return new[] { x, y, w, h };
+            float w = 1f - s.CropL - s.CropR, h = 1f - s.CropB - s.CropT;
+            float x = s.FlipH ? 1f - s.CropL : s.CropL;
+            float y = s.FlipV ? 1f - s.CropB : s.CropB;
+            return new[] { x, y, s.FlipH ? -w : w, s.FlipV ? -h : h };
         }
     }
 }

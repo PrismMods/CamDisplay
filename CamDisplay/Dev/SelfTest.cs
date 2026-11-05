@@ -79,7 +79,7 @@ namespace CamDisplay
             for (int i = 0; i < 5; i++) yield return null;
             Check(Mathf.Abs(rt.anchoredPosition.x - Screen.width / 2f) < 1f && Mathf.Abs(rt.anchoredPosition.y - Screen.height / 2f) < 1f,
                   "moving the layout target moves the cam", rt.anchoredPosition.ToString());
-            Check(Mathf.Abs(img.uvRect.x - 0.8f) < 0.01f && Mathf.Abs(img.uvRect.width + 0.7f) < 0.01f, "crop reaches the uv rect (with the flip)", img.uvRect.ToString());
+            Check(Mathf.Abs(img.uvRect.x - 0.9f) < 0.01f && Mathf.Abs(img.uvRect.width + 0.7f) < 0.01f, "crop reaches the uv rect, in displayed space under the flip", img.uvRect.ToString());
             yield return new WaitForSecondsRealtime(1.5f);
             string saved = File.ReadAllText(Path.Combine(Main.DataDir, "CamDisplay.json"));
             Check(saved.Contains("\"CropR\": 0.2"), "the change is written to CamDisplay.json within a second", saved.Length + " bytes");
