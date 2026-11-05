@@ -122,6 +122,19 @@ namespace CamDisplay
             Check(SceneWatch.Current() == CamContextKind.Editor, "the level editor is classified as the editor", SceneWatch.Describe());
             Check(!Shown(), "and the cam is hidden there by default");
 
+            if (MacPatch.IsMac)
+            {
+                Check(MacPatch.Status() == "patched", "the running game reads as camera-patched", MacPatch.Status());
+                Check(Launcher.Install() == "" && File.Exists(Launcher.Path), "the launcher is installed in the game folder");
+                Check(Launcher.Line() == MacPatchPlan.LaunchLine(MacPatch.GameDir, "setup_helper.sh"), "the launch line wraps this install's setup_helper.sh", Launcher.Line());
+                PrismLib.UI.Toolkit.SettingRow copy = null; int mac = 0;
+                foreach (var r in SettingsRows.Build()) if (r.Group == "macOS camera") { mac++; if (r.Label == "Copy launch options") copy = r; }
+                Check(mac == 5, "the settings window has the macOS camera group", mac + " rows");
+                if (copy != null) { copy.Set(null); }
+                Check(GUIUtility.systemCopyBuffer == Launcher.Line(), "Copy puts the launch line on the clipboard");
+                Check(MacPatch.ScheduleAfterExit("undo", "apply") == "", "undo + apply are queued for game exit (checked from outside after quit)");
+            }
+
             JsonUtility.FromJsonOverwrite(json, Main.Settings);
             Main.SaveSoon();
             yield return new WaitForSecondsRealtime(1.5f);
