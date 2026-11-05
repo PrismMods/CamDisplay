@@ -13,4 +13,9 @@ $L /nonexistent 2>/dev/null; check "$?" "127" "a missing program exits 127"
 # Steam tracks (and asks to quit) the pid it started, so the program must BE that pid.
 $L /bin/sh -c 'echo $$ > /tmp/cdl-pid' & lp=$!; wait $lp
 check "$(cat /tmp/cdl-pid)" "$lp" "the program runs in the launcher's own process"
+# The game supports macOS 12 (LSMinimumSystemVersion); a launcher built for the builder's macOS
+# would stop older Macs from launching the game at all.
+for arch in arm64 x86_64; do
+    check "$(otool -arch $arch -l "$L" | awk '/minos/{print $2; exit}')" "12.0" "the $arch slice runs on macOS 12"
+done
 exit $fail
