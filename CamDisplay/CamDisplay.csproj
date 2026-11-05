@@ -75,6 +75,10 @@
         <Compile Include="LoaderUmm.cs" />
         <Compile Include="Util\Log.cs" />
         <Compile Include="Util\PrismBootstrap.cs" />
+        <Compile Include="Core\CamSettings.cs" />
+        <Compile Include="Core\CamContext.cs" />
+        <Compile Include="Core\CamGeometry.cs" />
+        <Compile Include="Core\MacPatchPlan.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
