@@ -24,8 +24,17 @@ namespace CamDisplay
             try { Directory.CreateDirectory(dataDir); } catch { }
             Log.Path = Path.Combine(dataDir, "CamDisplayLog.txt");
             Log.Info("CamDisplay " + version + " loaded via " + loader);
+            // Before anything names a PrismLib.UI type (PrismBridge has one in a field): one copy
+            // loads per session, so every mod folder's copy is brought up to the newest first.
+            PrismLib.Bootstrap.PrismBootstrap.SyncUi();
             Load();
+            InitPrism(version);
         }
+
+        // Separate and never inlined: JIT-compiling Setup must not load PrismBridge's field types
+        // (PrismLib.UI) before SyncUi above has run.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void InitPrism(string version) => PrismBridge.Init(version);
 
         // Built on the first frame, not at load: MelonLoader initialises mods before any scene.
         private static void Start()
@@ -42,7 +51,8 @@ namespace CamDisplay
                 if (Feed == null) Start();
                 Feed.Tick();
                 bool show = CamContext.ShouldShow(SceneWatch.Current(), Settings);
-                View.Apply(Settings, Feed.Texture, show, SettingsVersion);
+                View.Apply(Settings, Feed.Texture, show || PrismBridge.EditorOpen, SettingsVersion);
+                PrismBridge.Tick();
                 if (_dirtySince >= 0f && Time.unscaledTime - _dirtySince >= 1f) Save();
             }
             catch (Exception e) { Log.Error("update", e); }
@@ -54,6 +64,7 @@ namespace CamDisplay
         {
             if (_dirtySince >= 0f) Save();
             Feed?.Stop();
+            PrismBridge.Shutdown();
             Log.Info("CamDisplay shut down");
         }
 

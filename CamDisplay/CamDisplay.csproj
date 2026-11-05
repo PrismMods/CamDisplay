@@ -82,6 +82,7 @@
         <Compile Include="Cam\CamFeed.cs" />
         <Compile Include="Cam\CamView.cs" />
         <Compile Include="Cam\SceneWatch.cs" />
+        <Compile Include="Util\PrismBridge.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
