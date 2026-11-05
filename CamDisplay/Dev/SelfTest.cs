@@ -44,9 +44,6 @@ namespace CamDisplay
             Log.Info("SELFTEST start, scene " + SceneWatch.Scene + ", screen " + Screen.width + "x" + Screen.height);
             Check(Main.Loader != null, "the mod loaded via " + Main.Loader);
             Check(PrismBridge.Available, "PrismLib is available and wired");
-
-            // Feed
-            yield return WaitFor(() => Main.Feed?.Texture != null, 15f);
             for (int i = 0; i < 5; i++) yield return null;
             var getKey = typeof(Input).GetMethod("GetKey", new[] { typeof(KeyCode) });
             var info = HarmonyLib.Harmony.GetPatchInfo(getKey);
@@ -55,6 +52,9 @@ namespace CamDisplay
             var t = Main.Feed?.Texture;
             Check(t != null && t.width > 16, "the camera feed is live", "status='" + Main.Feed?.Status + "'");
             Check(string.IsNullOrEmpty(Main.Feed?.Status), "no status message while the feed is fine", Main.Feed?.Status);
+
+            // Feed
+            yield return WaitFor(() => Main.Feed?.Texture != null, 15f);
 
             // Context: wait for a real scene, then the cam follows the per-context toggles
             yield return WaitFor(() => SceneWatch.Scene == "scnLevelSelect" || SceneWatch.Scene == "scnCLS", 20f);
@@ -102,11 +102,13 @@ namespace CamDisplay
             PrismBridge.CloseLayoutEditor();
             for (int i = 0; i < 5; i++) yield return null;
 
-            // Unity stops the webcam on a scene change; the feed must come back on its own
+            // A scene change (every level retry is one) must not stop the feed: restarting costs a
+            // main-thread Play() right at the countdown.
             float t0 = Time.realtimeSinceStartup;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             yield return new WaitForSecondsRealtime(1f);
             yield return WaitFor(() => Main.Feed?.Texture != null, 10f);
+            int restarts = Main.Feed.Restarts;
             Check(Main.Feed?.Texture != null, "the feed is live again after a scene change",
                   "after " + (Time.realtimeSinceStartup - t0).ToString("0.0") + " s, status '" + Main.Feed?.Status + "'");
 

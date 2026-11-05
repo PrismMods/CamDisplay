@@ -15,7 +15,10 @@ namespace CamDisplay
         private WebCamTexture _tex;
         private AsyncOperation _auth;
         private CamSettings _s;
-        private bool _want, _wasPlaying, _reportedStop;
+        private bool _want, _wasPlaying, _reportedStop, _problem;
+        private float _openedAt;
+        private string _okStatus = "";             // what the status says when frames are flowing
+        private const float NoFramesAfter = 5f;
         private int _sceneChangeFrame = -1;
         private const int SceneStopWindow = 300;   // frames after a scene change in which a stop is Unity's
 
@@ -23,6 +26,8 @@ namespace CamDisplay
         internal static Func<string> DeniedText = () => "Camera access denied";
 
         public string Status { get; private set; } = "";
+        /// Scene-change restarts so far (the self-test checks that there are none).
+        internal int Restarts { get; private set; }
         public string Device { get; private set; }
         public event Action StatusChanged;
 
@@ -72,6 +77,7 @@ namespace CamDisplay
             }
             _wasPlaying = false;
             _reportedStop = false;
+            _problem = false;
         }
 
         public void Tick()
@@ -86,23 +92,58 @@ namespace CamDisplay
                 return;
             }
             if (_tex == null) return;
-            if (_tex.isPlaying) { _wasPlaying = true; _reportedStop = false; return; }
-            if (!_wasPlaying) return;   // still starting
+            if (_tex.isPlaying && _tex.width > 16)
+            {
+                _wasPlaying = true;
+                _reportedStop = false;
+                if (_problem) { _problem = false; SetStatus(_okStatus); }   // frames again: clear the warning
+                return;
+            }
+            // Started (or restarted) but no frames yet: a camera the OS blocks or another app holds
+            // can stay like this forever, so say so after a few seconds instead of reading "OK".
+            if (!_wasPlaying || _tex.isPlaying)
+            {
+                if (!_problem && Time.realtimeSinceStartup - _openedAt > NoFramesAfter)
+                {
+                    _problem = true;
+                    SetStatus("Camera not delivering frames (in use by another app, or blocked by the OS?)");
+                }
+                return;
+            }
             if (_sceneChangeFrame >= 0 && Time.frameCount - _sceneChangeFrame <= SceneStopWindow)
             {
                 _sceneChangeFrame = -1;
                 _wasPlaying = false;
-                Log.Info("camera stopped by a scene change; restarting");
+                Restarts++;
+                float t0 = Time.realtimeSinceStartup;
                 _tex.Play();
+                _openedAt = Time.realtimeSinceStartup;
+                Log.Info("camera stopped by a scene change; restarted (Play took " + ((_openedAt - t0) * 1000f).ToString("0") + " ms)");
                 return;
             }
             if (!_reportedStop)
             {
                 _reportedStop = true;
                 _wasPlaying = false;
+                _problem = true;
                 SetStatus("Camera stopped (" + Device + " disconnected?)");
             }
         }
+
+#if DEBUG
+        /// Self-test only: open a named device as Open would, bypassing PickDevice.
+        internal void OpenForTest(string name)
+        {
+            Stop();
+            _want = true;
+            _tex = new WebCamTexture(name, _s.Width, _s.Height, _s.Fps);
+            Device = name;
+            _tex.Play();
+            _openedAt = Time.realtimeSinceStartup;
+            _okStatus = "";
+            SetStatus("");
+        }
+#endif
 
         private void Open()
         {
@@ -113,11 +154,18 @@ namespace CamDisplay
             try
             {
                 _tex = new WebCamTexture(name, _s.Width, _s.Height, _s.Fps);
+                // Unity stopped the camera on every scene change (macOS, 3.4.0); if that is it
+                // treating the texture as unused on scene unload, this keeps it — and a level retry
+                // then pays no Play() at the countdown. Unverified: the restart path stays.
+                _tex.hideFlags = HideFlags.DontUnloadUnusedAsset;
                 float t0 = Time.realtimeSinceStartup;
                 _tex.Play();
+                _openedAt = Time.realtimeSinceStartup;
                 Log.Info("camera '" + name + "' started (" + _s.Width + "x" + _s.Height + "@" + _s.Fps
                          + "), Play took " + ((Time.realtimeSinceStartup - t0) * 1000f).ToString("0") + " ms");
-                SetStatus(fellBack ? "Using " + name + " (saved camera not found)" : "");
+                _okStatus = fellBack ? "Using " + name + " (saved camera not found)" : "";
+                _problem = false;
+                SetStatus(_okStatus);
             }
             catch (Exception e) { Log.Error("camera start failed", e); SetStatus("Camera failed to start"); _tex = null; }
         }
