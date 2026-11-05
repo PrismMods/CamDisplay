@@ -26,7 +26,16 @@ namespace CamProbe {
         int frame, updates, reports;
         bool started;
 
+        bool wasPlaying;
+        int restarts;
+
+        // Instrumentation: what happens around a webcam that stops on its own.
+        void OnApplicationFocus(bool f) { Main.Log("focus=" + f + " frame=" + frame); }
+        void OnApplicationPause(bool p) { Main.Log("pause=" + p + " frame=" + frame); }
+
         void Start() {
+            UnityEngine.SceneManagement.SceneManager.activeSceneChanged +=
+                (a, b) => Main.Log("scene " + a.name + " -> " + b.name + " frame=" + frame);
             try {
                 Main.Log("hasAuth(before)=" + Application.HasUserAuthorization(UserAuthorization.WebCam));
                 var devs = WebCamTexture.devices;
@@ -52,6 +61,12 @@ namespace CamProbe {
                     Main.Log("Play returned; isPlaying=" + tex.isPlaying);
                 }
                 if (tex != null) {
+                    if (tex.isPlaying) wasPlaying = true;
+                    else if (wasPlaying) {
+                        wasPlaying = false;
+                        Main.Log("STOPPED frame=" + frame + " updates=" + updates + " scene=" + UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+                        if (restarts < 3) { restarts++; tex.Play(); Main.Log("restart " + restarts + " -> isPlaying=" + tex.isPlaying); }
+                    }
                     if (tex.didUpdateThisFrame) updates++;
                     if (frame % 120 == 0 && reports < 12) {
                         reports++;
