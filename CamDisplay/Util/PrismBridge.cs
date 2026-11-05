@@ -19,6 +19,9 @@ namespace CamDisplay
 
         private static object _me, _editorClaim;
         private static LayoutEditor _editor;
+        private static SettingsPanel _settings;
+        private static int _devicePoll;
+        private static string _deviceKey = "";
         private static bool _editorAll;   // the editor shows every mod's targets (we host it)
 
         // Raise to the PrismLib release that first shipped the layout editor when CamDisplay ships.
@@ -51,11 +54,66 @@ namespace CamDisplay
                 PrismLib.Layout.Changed += () => { if (_editor != null && _editor.Visible) _editor.Reload(); };
             }
             me.AddLog("CamDisplay", () => ReadTail(), Log.Path);
+            Describe(me);
+        }
+
+        // Mirror the rows into PrismLib's registry so cross-mod search finds them.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Describe(object handle)
+        {
+            var me = (PrismLib.ModHandle)handle;
+            var list = new List<PrismLib.SettingEntry>();
+            int order = 0;
+            foreach (var r in SettingsRows.Build())
+            {
+                PrismLib.SettingKind kind;
+                switch (r.Kind)
+                {
+                    case SettingControl.Bool: kind = PrismLib.SettingKind.Bool; break;
+                    case SettingControl.Choice: kind = PrismLib.SettingKind.Enum; break;
+                    case SettingControl.Action: kind = PrismLib.SettingKind.Action; break;
+                    default: kind = PrismLib.SettingKind.Text; break;
+                }
+                list.Add(new PrismLib.SettingEntry
+                {
+                    Id = "camdisplay." + (r.Group + "." + r.Label).ToLowerInvariant().Replace(' ', '-'),
+                    Kind = kind, Label = r.Label, Tooltip = r.Tooltip, Page = r.Page, Group = r.Group,
+                    Keywords = new[] { "cam", "camera", "hand cam", "webcam" }, Order = order++,
+                    Get = r.Get ?? (() => null), Set = r.Set, Options = r.Options, ActionLabel = r.ActionLabel,
+                });
+            }
+            me.DescribeSettings(list);
+        }
+
+        internal static void ToggleSettings()
+        {
+            try
+            {
+                if (_settings == null) _settings = new SettingsPanel("CamDisplay", SettingsRows.Build);
+                _settings.Toggle();
+                if (_settings.Visible) _settings.Reload();
+            }
+            catch (Exception e) { Log.Error("settings window", e); }
+        }
+
+        internal static bool SettingsOpen => _settings != null && _settings.Visible;
+
+        /// Redraw the open window and the search mirror (device list, status line).
+        internal static void RefreshSettings()
+        {
+            try { if (_settings != null && _settings.Visible) _settings.Reload(); } catch (Exception e) { Log.Error("settings reload", e); }
+            if (Available) { try { Describe(_me); } catch { } }
         }
 
         internal static void Tick()
         {
             try { _editor?.Tick(); } catch (Exception e) { Log.Error("layout editor tick", e); }
+            if (_settings == null || !_settings.Visible) return;
+            try { _settings.Tick(); } catch (Exception e) { Log.Error("settings tick", e); }
+            // A camera plugged in or out while the window is open: every 2 s is plenty.
+            if (++_devicePoll % 120 != 0 || Main.Feed == null) return;
+            string key = string.Join("|", Main.Feed.Devices());
+            if (key != _deviceKey) { _deviceKey = key; RefreshSettings(); }
         }
 
         /// Open the layout editor: ours if we host it (or PrismLib is missing), else ask the host.

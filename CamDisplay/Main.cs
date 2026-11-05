@@ -41,6 +41,7 @@ namespace CamDisplay
         {
             View = new CamView();
             Feed = new CamFeed();
+            Feed.StatusChanged += PrismBridge.RefreshSettings;
             Feed.Restart(Settings);
         }
 
@@ -53,12 +54,22 @@ namespace CamDisplay
                 bool show = CamContext.ShouldShow(SceneWatch.Current(), Settings);
                 View.Apply(Settings, Feed.Texture, show || PrismBridge.EditorOpen, SettingsVersion);
                 PrismBridge.Tick();
+                if (SettingsKeyDown()) PrismBridge.ToggleSettings();
                 if (_dirtySince >= 0f && Time.unscaledTime - _dirtySince >= 1f) Save();
             }
             catch (Exception e) { Log.Error("update", e); }
         }
 
-        internal static void OnGui() { }
+        // UMM's own mod page: one button into the real settings window.
+        internal static void OnGui()
+        {
+            if (GUILayout.Button("Open CamDisplay settings (Ctrl+Shift+C)", GUILayout.Width(320f))) PrismBridge.ToggleSettings();
+        }
+
+        private static bool SettingsKeyDown() =>
+            Input.GetKeyDown(KeyCode.C)
+            && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+            && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
 
         internal static void Shutdown()
         {
