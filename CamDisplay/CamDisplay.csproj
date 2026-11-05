@@ -79,6 +79,9 @@
         <Compile Include="Core\CamContext.cs" />
         <Compile Include="Core\CamGeometry.cs" />
         <Compile Include="Core\MacPatchPlan.cs" />
+        <Compile Include="Cam\CamFeed.cs" />
+        <Compile Include="Cam\CamView.cs" />
+        <Compile Include="Cam\SceneWatch.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
