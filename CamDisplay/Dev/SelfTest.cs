@@ -18,6 +18,9 @@ namespace CamDisplay
         internal static void MaybeStart()
         {
             if (!File.Exists(Path.Combine(Main.DataDir, "selftest"))) return;
+            // Unattended runs happen while the Mac is locked and the game is never focused; without
+            // this Unity pauses and the test never advances.
+            Application.runInBackground = true;
             var go = new GameObject("CamDisplaySelfTest");
             DontDestroyOnLoad(go);
             go.AddComponent<SelfTest>();
@@ -49,12 +52,12 @@ namespace CamDisplay
             var info = HarmonyLib.Harmony.GetPatchInfo(getKey);
             Check(info != null && info.Postfixes.Count > 0, "the input gate is installed (by CamDisplay when standalone)",
                   info == null ? "no patches" : string.Join(",", info.Owners));
-            var t = Main.Feed?.Texture;
-            Check(t != null && t.width > 16, "the camera feed is live", "status='" + Main.Feed?.Status + "'");
-            Check(string.IsNullOrEmpty(Main.Feed?.Status), "no status message while the feed is fine", Main.Feed?.Status);
 
             // Feed
             yield return WaitFor(() => Main.Feed?.Texture != null, 15f);
+            var t = Main.Feed?.Texture;
+            Check(t != null && t.width > 16, "the camera feed is live", "status='" + Main.Feed?.Status + "'");
+            Check(string.IsNullOrEmpty(Main.Feed?.Status), "no status message while the feed is fine", Main.Feed?.Status);
 
             // Context: wait for a real scene, then the cam follows the per-context toggles
             yield return WaitFor(() => SceneWatch.Scene == "scnLevelSelect" || SceneWatch.Scene == "scnCLS", 20f);
@@ -105,12 +108,21 @@ namespace CamDisplay
             // A scene change (every level retry is one) must not stop the feed: restarting costs a
             // main-thread Play() right at the countdown.
             float t0 = Time.realtimeSinceStartup;
+            int restarts = Main.Feed.Restarts;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             yield return new WaitForSecondsRealtime(1f);
             yield return WaitFor(() => Main.Feed?.Texture != null, 10f);
-            int restarts = Main.Feed.Restarts;
-            Check(Main.Feed?.Texture != null, "the feed is live again after a scene change",
+            Check(Main.Feed?.Texture != null, "the feed is live after a scene change",
                   "after " + (Time.realtimeSinceStartup - t0).ToString("0.0") + " s, status '" + Main.Feed?.Status + "'");
+            Check(Main.Feed.Restarts == restarts, "the feed survives a scene change without a restart", (Main.Feed.Restarts - restarts) + " restart(s)");
+
+            // A camera that never delivers frames says so
+            Main.Feed.OpenForTest("No Such Camera");
+            yield return WaitFor(() => (Main.Feed.Status ?? "").Contains("not delivering"), 9f);
+            Check((Main.Feed.Status ?? "").Contains("not delivering"), "a camera that sends no frames shows a status", "'" + Main.Feed.Status + "'");
+            Main.Feed.Restart(Main.Settings);
+            yield return WaitFor(() => Main.Feed?.Texture != null, 10f);
+            Check(Main.Feed.Texture != null && string.IsNullOrEmpty(Main.Feed.Status), "the real camera comes back with a clear status", "'" + Main.Feed.Status + "'");
 
             // Frame time with the cam on vs off, here in a menu (the dense-level check is manual)
             Main.Settings.ShowInLevelSelect = Main.Settings.ShowInMenus = false; Main.SaveSoon();
