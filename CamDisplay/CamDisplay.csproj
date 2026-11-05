@@ -62,6 +62,14 @@
         <Reference Include="PrismLib"><HintPath>$(MSBuildProjectDirectory)/../lib/PrismLib.dll</HintPath></Reference>
         <Reference Include="PrismLib.UI"><HintPath>$(MSBuildProjectDirectory)/../lib/PrismLib.UI.dll</HintPath></Reference>
     </ItemGroup>
+    <ItemGroup>
+        <!-- HarmonyX under both loaders, different versions: compile against UMM's copy when the
+             game has one, else MelonLoader's (as Quartz does); only APIs both share are used. -->
+        <Reference Include="0Harmony">
+            <HintPath Condition="Exists('$(AdofaiManaged)/UnityModManager/0Harmony.dll')">$(AdofaiManaged)/UnityModManager/0Harmony.dll</HintPath>
+            <HintPath Condition="!Exists('$(AdofaiManaged)/UnityModManager/0Harmony.dll')">$(GameRoot)/MelonLoader/net35/0Harmony.dll</HintPath>
+        </Reference>
+    </ItemGroup>
     <ItemGroup Condition=" '$(LoaderTarget)' == 'ML' ">
         <Reference Include="MelonLoader"><HintPath>$(GameRoot)/MelonLoader/net35/MelonLoader.dll</HintPath></Reference>
     </ItemGroup>
@@ -83,6 +91,7 @@
         <Compile Include="Cam\CamView.cs" />
         <Compile Include="Cam\SceneWatch.cs" />
         <Compile Include="Util\PrismBridge.cs" />
+        <Compile Include="Util\Gate.cs" />
         <Compile Include="UI\SettingsRows.cs" />
         <Compile Include="Dev\SelfTest.cs" />
         <Compile Include="Mac\MacPatch.cs" />

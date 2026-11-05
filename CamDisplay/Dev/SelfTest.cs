@@ -47,6 +47,11 @@ namespace CamDisplay
 
             // Feed
             yield return WaitFor(() => Main.Feed?.Texture != null, 15f);
+            for (int i = 0; i < 5; i++) yield return null;
+            var getKey = typeof(Input).GetMethod("GetKey", new[] { typeof(KeyCode) });
+            var info = HarmonyLib.Harmony.GetPatchInfo(getKey);
+            Check(info != null && info.Postfixes.Count > 0, "the input gate is installed (by CamDisplay when standalone)",
+                  info == null ? "no patches" : string.Join(",", info.Owners));
             var t = Main.Feed?.Texture;
             Check(t != null && t.width > 16, "the camera feed is live", "status='" + Main.Feed?.Status + "'");
             Check(string.IsNullOrEmpty(Main.Feed?.Status), "no status message while the feed is fine", Main.Feed?.Status);

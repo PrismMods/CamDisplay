@@ -57,8 +57,9 @@ namespace CamDisplay
                 Feed.Tick();
                 bool show = CamContext.ShouldShow(SceneWatch.Current(), Settings);
                 View.Apply(Settings, Feed.Texture, show || PrismBridge.EditorOpen, SettingsVersion);
-                PrismBridge.Tick();
-                if (SettingsKeyDown()) PrismBridge.ToggleSettings();
+                Gate.Tick();
+                // Our own keys and the Prism polls read real input even while a window withholds it.
+                PrismLib.UI.Toolkit.InputGate.Exempt(Polls);
                 if (_dirtySince >= 0f && Time.unscaledTime - _dirtySince >= 1f) Save();
             }
             catch (Exception e) { Log.Error("update", e); }
@@ -68,6 +69,16 @@ namespace CamDisplay
         internal static void OnGui()
         {
             if (GUILayout.Button("Open CamDisplay settings (Ctrl+Shift+C)", GUILayout.Width(320f))) PrismBridge.ToggleSettings();
+        }
+
+        private static void Polls()
+        {
+            PrismBridge.Tick();
+            if (SettingsKeyDown()) PrismBridge.ToggleSettings();
+            // Escape closes the top Prism window (only when one is open); the wheel has to be fed
+            // by hand, this game's input module does not forward it to UI Toolkit.
+            if (Input.GetKeyDown(KeyCode.Escape) && PrismLib.UI.Toolkit.Ui.AnyWindowOpen) PrismLib.UI.Toolkit.Ui.CloseTop();
+            PrismLib.UI.Toolkit.Ui.TickWheel(Input.mousePosition, Input.mouseScrollDelta.y);
         }
 
         private static bool SettingsKeyDown() =>
@@ -80,6 +91,7 @@ namespace CamDisplay
             if (_dirtySince >= 0f) Save();
             Feed?.Stop();
             PrismBridge.Shutdown();
+            Gate.Shutdown();
             Log.Info("CamDisplay shut down");
         }
 
