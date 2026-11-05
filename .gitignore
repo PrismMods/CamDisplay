@@ -5,3 +5,4 @@ native/launch/CamDisplayLaunch
 tools/CamProbe/CamProbe.dll
 lib/*.dll
 .superpowers/
+build/
