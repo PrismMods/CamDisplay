@@ -85,6 +85,18 @@
         <Compile Include="Util\PrismBridge.cs" />
         <Compile Include="UI\SettingsRows.cs" />
         <Compile Include="Dev\SelfTest.cs" />
+        <Compile Include="Mac\MacPatch.cs" />
+        <Compile Include="Mac\Launcher.cs" />
+        <Compile Include="Mac\MacRows.cs" />
     </ItemGroup>
+    <ItemGroup>
+        <!-- xbuild drops an extensionless resource, so the launcher is embedded from a .bin copy. -->
+        <EmbeddedResource Include="$(IntermediateOutputPath)CamDisplayLaunch.bin"><LogicalName>CamDisplay.CamDisplayLaunch</LogicalName></EmbeddedResource>
+        <EmbeddedResource Include="..\tools\mac-camera-patch.sh"><LogicalName>CamDisplay.mac-camera-patch.sh</LogicalName></EmbeddedResource>
+    </ItemGroup>
+    <Target Name="RequireLauncher" BeforeTargets="BeforeBuild">
+        <Error Condition="!Exists('$(MSBuildProjectDirectory)/../native/launch/CamDisplayLaunch')" Text="native/launch/CamDisplayLaunch is missing: run native/launch/build.sh first" />
+        <Copy SourceFiles="$(MSBuildProjectDirectory)/../native/launch/CamDisplayLaunch" DestinationFiles="$(IntermediateOutputPath)CamDisplayLaunch.bin" SkipUnchangedFiles="true" />
+    </Target>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

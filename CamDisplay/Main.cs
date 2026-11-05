@@ -41,6 +41,7 @@ namespace CamDisplay
         {
             View = new CamView();
             Feed = new CamFeed();
+            MacRows.Install();
             Feed.StatusChanged += PrismBridge.RefreshSettings;
             Feed.Restart(Settings);
 #if DEBUG

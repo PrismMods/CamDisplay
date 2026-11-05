@@ -8,6 +8,7 @@ G=${ADOFAI_ROOT:-"$HOME/Library/Application Support/Steam/steamapps/common/A Dan
 T=${1:-}
 [ -z "$T" ] && { [ -f "$G/MelonLoader/net35/MelonLoader.dll" ] && T=ML || T=UMM; }
 [ -f lib/PrismLib.dll ] && [ -f lib/PrismLib.UI.dll ] || lib/update-prismlib.sh
+[ -f native/launch/CamDisplayLaunch ] || native/launch/build.sh   # embedded into the mod
 xbuild CamDisplay/CamDisplay.csproj /p:LoaderTarget="$T" /p:GameRoot="$G" /verbosity:quiet > /dev/null
 
 if [ "$T" = ML ]; then
