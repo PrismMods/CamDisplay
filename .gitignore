@@ -1,0 +1,4 @@
+bin/
+obj/
+*.zip
+native/launch/CamDisplayLaunch
