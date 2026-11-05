@@ -1,0 +1,9 @@
+{
+  "Id": "CamProbe",
+  "DisplayName": "CamProbe (dev tool)",
+  "Author": "PrismMods",
+  "Version": "0.0.1",
+  "ManagerVersion": "0.32.4.0",
+  "AssemblyName": "CamProbe.dll",
+  "EntryMethod": "CamProbe.Main.Load"
+}

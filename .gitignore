@@ -2,3 +2,4 @@ bin/
 obj/
 *.zip
 native/launch/CamDisplayLaunch
+tools/CamProbe/CamProbe.dll
