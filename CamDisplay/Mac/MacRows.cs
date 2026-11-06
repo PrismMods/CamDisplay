@@ -24,7 +24,7 @@ namespace CamDisplay
             yield return new SettingRow
             {
                 Owner = SettingsRows.Page, Page = SettingsRows.Page, Group = Group, Label = "Camera patch",
-                Kind = SettingControl.Text, Get = () => _pending ?? StatusText(), Set = _ => PrismBridge.RefreshSettings(),
+                Kind = SettingControl.Info, Get = () => _pending ?? StatusText(), Set = _ => PrismBridge.RefreshSettings(),
             };
             yield return Action("Enable camera on macOS", "Enable camera", () =>
             {
@@ -37,17 +37,17 @@ namespace CamDisplay
             yield return new SettingRow
             {
                 Owner = SettingsRows.Page, Page = SettingsRows.Page, Group = Group, Label = "Steam launch options",
-                Kind = SettingControl.Text, Get = () => Launcher.Line(), Set = _ => PrismBridge.RefreshSettings(),
+                Kind = SettingControl.Info, Get = () => Launcher.Line(), Set = _ => PrismBridge.RefreshSettings(),
             };
             yield return Action("Copy launch options", "Copy", () =>
             {
                 GUIUtility.systemCopyBuffer = Launcher.Line();
                 _pending = "Launch options copied. In Steam: ADOFAI › Properties › Launch Options, paste, close.";
             });
-            yield return Action("Undo camera patch", "Undo", () =>
+            yield return Action("Remove camera patch", "Remove patch", () =>
             {
                 string e = MacPatch.ScheduleAfterExit("undo");
-                _pending = e == "" ? "The patch is removed as the game closes." : "Could not queue the undo: " + e;
+                _pending = e == "" ? "The patch is removed as the game closes." : "Could not queue the removal: " + e;
             });
         }
 

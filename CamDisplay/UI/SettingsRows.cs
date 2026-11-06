@@ -51,7 +51,7 @@ namespace CamDisplay
             };
             yield return new SettingRow
             {
-                Owner = Page, Page = Page, Group = "Camera", Label = "Status", Kind = SettingControl.Text,
+                Owner = Page, Page = Page, Group = "Camera", Label = "Status", Kind = SettingControl.Info,
                 Get = () => string.IsNullOrEmpty(feed?.Status) ? "OK" : feed.Status,
                 Set = _ => PrismBridge.RefreshSettings(),   // read-only: an edit just redraws the real value
             };
