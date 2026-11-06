@@ -31,7 +31,8 @@ namespace CamDisplay
                 string e = Launcher.Install();
                 if (e == "") e = MacPatch.ScheduleAfterExit("apply");
                 _pending = e == ""
-                    ? "Set the launch options below, then quit the game: the patch is applied as it closes. Start it again from Steam."
+                    ? "Set the launch options below, then quit the game: the patch is applied as it closes. Start it again from Steam. "
+                      + "The first time, macOS forgets the game's Input Monitoring: re-add it once, or Tab and F-keys stop hitting."
                     : "Could not prepare the patch: " + e;
             });
             yield return new SettingRow

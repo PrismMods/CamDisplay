@@ -30,12 +30,19 @@ Steam starts the game, macOS asks *Steam* for camera access, which Steam does no
    (they put `CamDisplayLaunch` in front of the launcher you already use).
 3. Quit the game. The patch is applied as it closes (re-signing a running game is not safe).
 4. Start it from Steam and allow the camera when macOS asks.
+5. Only the first time: System Settings › Privacy & Security › **Input Monitoring**, remove the
+   game, add it again, restart it. Until then macOS blocks the game's keyboard hook, so Tab and
+   F1-F12 do not count as hits.
 
 What the patch does: adds a camera usage line to the game's `Info.plist` and re-signs the game
-(ad-hoc) with its own entitlements plus `com.apple.security.device.camera`. The original
-signature files are backed up to `~/Library/Application Support/CamDisplay/sig-backup`; **Undo
-camera patch** puts them back, and so does Steam › Verify integrity of game files. A game update
-restores the original signature too — enable the camera again afterwards.
+with its own entitlements plus `com.apple.security.device.camera`. It signs with a certificate
+made once on your Mac (kept in `~/Library/Application Support/CamDisplay/signing`, outside your
+login keychain), so macOS keeps the game's Input Monitoring permission (and, by the same rule, its
+camera permission) when you re-patch after a game update; ad-hoc signing would make every re-patch
+look like a new app. The
+original signature files are backed up to `~/Library/Application Support/CamDisplay/sig-backup`;
+**Undo camera patch** puts them back, and so does Steam › Verify integrity of game files. A game
+update restores the original signature too — enable the camera again afterwards.
 
 Once the game may use the camera, so may any mod it loads. CamDisplay keeps the camera open while
 it is enabled (starting a camera stalls the game for about a second, so it is not restarted for

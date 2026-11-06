@@ -8,7 +8,7 @@ T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 fail=0
 check() { if [ "$1" = "$2" ]; then echo "  ok   $3"; else echo "  FAIL $3 (got '$1', want '$2')"; fail=1; fi; }
-export CAMPATCH_BACKUP="$T/backup" CAMPATCH_STOCK_RE='^Signature=adhoc'
+export CAMPATCH_BACKUP="$T/backup" CAMPATCH_STOCK_RE='^Signature=adhoc' CAMPATCH_SIGNING="$T/signing"
 
 APP="$T/Toy.app"
 fresh() {   # a "stock" toy app: hardened runtime, one entitlement, no camera
@@ -22,11 +22,38 @@ fresh() {   # a "stock" toy app: hardened runtime, one entitlement, no camera
     codesign --force --sign - --options runtime --entitlements "$T/e.plist" "$APP" 2>/dev/null
 }
 ents() { codesign -d --entitlements - --xml "$APP" 2>/dev/null; }
+req() { codesign -d -r- "$APP" 2>&1 | grep designated; }
+authority() { codesign -dvv "$APP" 2>&1 | grep -E '^(Authority|Signature)=' | head -1; }
 
 fresh
 check "$($P status "$APP")" "stock" "a fresh app reads as stock"
+list_before=$(security list-keychains -d user)
 $P apply "$APP" >/dev/null 2>&1
 check "$($P status "$APP")" "patched" "apply patches it"
+check "$(authority)" "Authority=CamDisplay Local Signing" "it is signed with the local certificate, not ad hoc"
+check "$(security list-keychains -d user)" "$list_before" "the keychain search list is back as it was"
+req1=$(req)
+check "$(grep -c 'certificate leaf' <<<"$req1")" "1" "the designated requirement names the certificate, not a cdhash"
+kc1=$(shasum "$CAMPATCH_SIGNING/CamDisplay.keychain-db")
+$P undo "$APP" >/dev/null 2>&1
+printf 'int main(void){return 2;}\n' > "$T/m3.c"; clang -o "$APP/Contents/MacOS/Toy" "$T/m3.c"   # a "game update"
+codesign --force --sign - --options runtime --entitlements "$T/e.plist" "$APP" 2>/dev/null
+$P apply "$APP" >/dev/null 2>&1
+check "$(req)" "$req1" "a re-patch after an update keeps the same requirement (grants survive)"
+check "$(shasum "$CAMPATCH_SIGNING/CamDisplay.keychain-db")" "$kc1" "and reuses the identity"
+$P undo "$APP" >/dev/null 2>&1
+
+# No identity can be made: still patched, signed ad hoc.
+fresh
+: > "$T/blocker"
+CAMPATCH_SIGNING="$T/blocker/signing" $P apply "$APP" >/dev/null 2>&1
+check "$($P status "$APP")" "patched" "without a certificate it still patches"
+check "$(authority)" "Signature=adhoc" "signed ad hoc as the fallback"
+check "$(security list-keychains -d user)" "$list_before" "and the search list is untouched"
+
+fresh
+check "$($P status "$APP")" "stock" "fresh again"
+$P apply "$APP" >/dev/null 2>&1
 e=$(ents)
 check "$(grep -o 'disable-library-validation\|device.camera' <<<"$e" | wc -l | tr -d ' ')" "2" "the stock entitlement is kept and camera added"
 check "$(codesign --verify "$APP" 2>&1 && echo valid)" "valid" "the patched app verifies"
