@@ -2,9 +2,11 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace CamDisplay
 {
@@ -102,6 +104,44 @@ namespace CamDisplay
             Check(PrismBridge.SettingsOpen, "the settings window opens");
             int rows = 0; foreach (var r in SettingsRows.Build()) rows++;
             Check(rows >= 10, "the settings window has its rows", rows + " rows");
+            // Nothing in the settings window runs past its right edge, and the scroll view clips
+            var doc = FindObjectsByType<UnityEngine.UIElements.UIDocument>(FindObjectsSortMode.None)
+                .FirstOrDefault(d => d.gameObject.name == "CamDisplayPanel");
+            var win = doc != null ? doc.rootVisualElement.Children().FirstOrDefault() : null;
+            if (win != null)
+            {
+                // A text element's box can stay narrow while its glyphs run on (a long value in a
+                // fixed-width field), so measure the text itself against the room it has.
+                var cut = win.Query<UnityEngine.UIElements.TextElement>().ToList()
+                    .Where(t =>
+                    {
+                        if (t.resolvedStyle.display != UnityEngine.UIElements.DisplayStyle.Flex || string.IsNullOrEmpty(t.text)) return false;
+                        // Sticking out of the field (or row) that holds it, or squeezed below its own width.
+                        var host = (UnityEngine.UIElements.VisualElement)t.GetFirstAncestorOfType<UnityEngine.UIElements.TextField>() ?? t.parent;
+                        bool outside = host != null && host != t && t.worldBound.xMax > host.worldBound.xMax + 1f;
+                        // A text field's text never wraps, whatever whiteSpace says.
+                        bool singleLine = t.GetFirstAncestorOfType<UnityEngine.UIElements.TextField>() != null
+                            || t.resolvedStyle.whiteSpace != UnityEngine.UIElements.WhiteSpace.Normal;
+                        bool squeezed = singleLine
+                            && t.MeasureTextSize(t.text, 0f, UnityEngine.UIElements.VisualElement.MeasureMode.Undefined, 0f, UnityEngine.UIElements.VisualElement.MeasureMode.Undefined).x > t.contentRect.width + 2f;
+                        return outside || squeezed;
+                    })
+                    .Select(t => "'" + (t.text.Length > 24 ? t.text.Substring(0, 24) + "…" : t.text) + "'").ToList();
+                Check(cut.Count == 0, "no text in the settings window is cut off", string.Join(", ", cut));
+                var sv = win.Q<UnityEngine.UIElements.ScrollView>();
+                Check(sv != null && sv.style.overflow.value == UnityEngine.UIElements.Overflow.Hidden, "the settings scroll view clips its rows",
+                      sv == null ? "no scroll view" : sv.style.overflow.value.ToString());
+            }
+            else Check(false, "the settings window is found for the layout checks");
+
+            // Escape closes the layout editor, and it opens again afterwards
+            PrismLib.UI.Toolkit.Ui.CloseTop();   // what Escape does: the editor is the top window
+            for (int i = 0; i < 3; i++) yield return null;
+            Check(!PrismBridge.EditorOpen, "Escape closes the layout editor");
+            PrismBridge.OpenLayoutEditor();
+            for (int i = 0; i < 5; i++) yield return null;
+            Check(PrismBridge.EditorOpen, "the layout editor opens again after Escape");
+
             PrismBridge.ToggleSettings();
             PrismBridge.CloseLayoutEditor();
             for (int i = 0; i < 5; i++) yield return null;
