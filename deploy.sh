@@ -4,12 +4,15 @@
 # Never leaves both installed: the other loader's copy is removed.
 set -euo pipefail
 cd "$(dirname "$0")"
+mkdir -p build
 G=${ADOFAI_ROOT:-"$HOME/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice"}
 T=${1:-}
 [ -z "$T" ] && { [ -f "$G/MelonLoader/net35/MelonLoader.dll" ] && T=ML || T=UMM; }
 [ -f lib/PrismLib.dll ] && [ -f lib/PrismLib.UI.dll ] || lib/update-prismlib.sh
 [ -f native/launch/CamDisplayLaunch ] || native/launch/build.sh   # embedded into the mod
-xbuild CamDisplay/CamDisplay.csproj /p:LoaderTarget="$T" /p:GameRoot="$G" /verbosity:quiet > /dev/null
+# Quiet on success; on failure, show the compiler errors instead of exiting silently.
+xbuild CamDisplay/CamDisplay.csproj /p:LoaderTarget="$T" /p:GameRoot="$G" /verbosity:quiet > build/deploy-xbuild.log 2>&1 \
+    || { grep -E ': error ' build/deploy-xbuild.log >&2; echo "build failed; nothing deployed" >&2; exit 1; }
 
 if [ "$T" = ML ]; then
     rm -rf "$G/UMMMods/CamDisplay"
