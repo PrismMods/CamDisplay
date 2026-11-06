@@ -83,6 +83,22 @@ static class CamDisplayTest
         Check(MacPatchPlan.PickHelper(f => true) == "setup_helper.sh", "setup_helper.sh wins when both exist");
         Check(MacPatchPlan.PickHelper(f => f == "melonloader-launch.sh") == "melonloader-launch.sh" && MacPatchPlan.PickHelper(f => false) == null, "falls back to MelonLoader's script, then none");
 
+        Console.WriteLine("camera modes");
+        // What this Mac's FaceTime HD camera reported (2026-11-07), two pixel formats of 720p among them.
+        var m = CamModes.From(new[]
+        {
+            new double[] { 1920, 1080, 15, 30 }, new double[] { 1280, 720, 15, 30 }, new double[] { 1280, 720, 15, 30 },
+            new double[] { 640, 480, 15, 30 }, new double[] { 1080, 1920, 15, 30 },
+        });
+        Check(m.Count == 8, "each size offers its top rate and the common rates its range covers, duplicates once (" + m.Count + ")");
+        Check(CamModes.Name(m[0]) == "640×480 @ 15" && CamModes.Name(m[1]) == "640×480 @ 30", "smallest picture first, then by frame rate");
+        Check(CamModes.IndexOf(m, 1280, 720, 60) < 0 && CamModes.IndexOf(m, 1280, 720, 30) >= 0, "a rate above the camera's range is not offered");
+        Check(CamModes.IndexOf(m, 1080, 1920, 30) < CamModes.IndexOf(m, 1920, 1080, 15), "sizes of equal area sort by width");
+        m = CamModes.From(new[] { new double[] { 1920, 1080, 60, 60 }, new double[] { 1280, 720, 29.97, 29.97 }, new double[] { 0, 0, 1, 30 } });
+        Check(m.Count == 2 && CamModes.Name(m[0]) == "1280×720 @ 30" && CamModes.Name(m[1]) == "1920×1080 @ 60",
+              "a fixed-rate format offers only its rate, rounded; an empty format is skipped");
+        Check(CamModes.From(new double[0][]).Count == 0, "a camera that reports nothing gives no modes (the fixed list stands in)");
+
         Console.WriteLine(_fail == 0 ? "ALL PASS" : _fail + " FAILED");
         return _fail == 0 ? 0 : 1;
     }
