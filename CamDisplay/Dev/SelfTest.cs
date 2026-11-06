@@ -62,6 +62,20 @@ namespace CamDisplay
             Check(t != null && t.width > 16, "the camera feed is live", "status='" + Main.Feed?.Status + "'");
             Check(string.IsNullOrEmpty(Main.Feed?.Status), "no status message while the feed is fine", Main.Feed?.Status);
 
+            // The Resolution dropdown lists the camera's own modes where macOS can be asked
+            if (MacPatch.IsMac)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var modes = CamModes.From(MacCamModes.Ranges(Main.Feed?.Device));
+                Log.Info("  modes of '" + Main.Feed?.Device + "' (" + sw.ElapsedMilliseconds + " ms): "
+                         + string.Join(", ", modes.ConvertAll(CamModes.Name).ToArray()));
+                var res = SettingsRows.Build().FirstOrDefault(r => r.Label == "Resolution");
+                Check(modes.Count > 0 && res != null && res.Kind == PrismLib.UI.Toolkit.SettingControl.Dropdown
+                      && res.Options.Length >= modes.Count && res.Options[0] == CamModes.Name(modes[0]),
+                      "the Resolution dropdown lists the camera's own modes",
+                      res == null ? "no row" : string.Join(", ", res.Options));
+            }
+
             // Context: wait for a real scene, then the cam follows the per-context toggles
             yield return WaitFor(() => SceneWatch.Scene == "scnLevelSelect" || SceneWatch.Scene == "scnCLS", 20f);
             for (int i = 0; i < 30; i++) yield return null;
