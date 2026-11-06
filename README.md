@@ -32,7 +32,7 @@ Steam starts the game, macOS asks *Steam* for camera access, which Steam does no
 4. Start it from Steam and allow the camera when macOS asks.
 5. Only the first time: System Settings › Privacy & Security › **Input Monitoring**, remove the
    game, add it again, restart it. Until then macOS blocks the game's keyboard hook, so Tab and
-   F1-F12 do not count as hits.
+   F1-F12 do not count as hits (CamDisplay shows a warning when this happens).
 
 What the patch does: adds a camera usage line to the game's `Info.plist` and re-signs the game
 with its own entitlements plus `com.apple.security.device.camera`. It signs with a certificate

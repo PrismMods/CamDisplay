@@ -28,6 +28,7 @@ namespace CamDisplay
             try { Directory.CreateDirectory(dataDir); } catch { }
             Log.Path = Path.Combine(dataDir, "CamDisplayLog.txt");
             Log.Info("CamDisplay " + version + " loaded via " + loader + "; settings: " + SettingsChord);
+            InputCheck.Install();   // before any scene: the game starts its keyboard hook in the first one
             // Before anything names a PrismLib.UI type (PrismBridge has one in a field): one copy
             // loads per session, so every mod folder's copy is brought up to the newest first.
             PrismLib.Bootstrap.PrismBootstrap.SyncUi();
@@ -70,6 +71,7 @@ namespace CamDisplay
                 }
                 View.Apply(Settings, Feed.Texture, show || PrismBridge.EditorOpen, SettingsVersion);
                 Gate.Tick();
+                InputCheck.Tick();
                 // Our own keys and the Prism polls read real input even while a window withholds it.
                 PrismLib.UI.Toolkit.InputGate.Exempt(Polls);
                 if (_dirtySince >= 0f && Time.unscaledTime - _dirtySince >= 1f) Save();
@@ -125,6 +127,7 @@ namespace CamDisplay
             Feed?.Stop();
             PrismBridge.Shutdown();
             Gate.Shutdown();
+            InputCheck.Dispose();
             Log.Info("CamDisplay shut down");
         }
 
@@ -141,6 +144,7 @@ namespace CamDisplay
                     View?.Apply(Settings, null, false, SettingsVersion);
                     PrismBridge.Deactivate();
                     Gate.Shutdown();
+                    InputCheck.Dispose();
                     if (_dirtySince >= 0f) Save();
                     Log.Info("CamDisplay off: camera released");
                 }

@@ -58,6 +58,8 @@
         <Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(AdofaiManaged)/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
         <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(AdofaiManaged)/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
         <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(AdofaiManaged)/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+        <Reference Include="Unity.TextMeshPro"><HintPath>$(AdofaiManaged)/Unity.TextMeshPro.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(AdofaiManaged)/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
         <Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(AdofaiManaged)/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
         <Reference Include="PrismLib"><HintPath>$(MSBuildProjectDirectory)/../lib/PrismLib.dll</HintPath></Reference>
         <Reference Include="PrismLib.UI"><HintPath>$(MSBuildProjectDirectory)/../lib/PrismLib.UI.dll</HintPath></Reference>
@@ -97,6 +99,7 @@
         <Compile Include="Mac\MacPatch.cs" />
         <Compile Include="Mac\Launcher.cs" />
         <Compile Include="Mac\MacRows.cs" />
+        <Compile Include="Mac\InputCheck.cs" />
     </ItemGroup>
     <ItemGroup>
         <!-- xbuild drops an extensionless resource, so the launcher is embedded from a .bin copy. -->

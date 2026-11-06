@@ -21,6 +21,12 @@ namespace CamDisplay
 
         private static IEnumerable<SettingRow> Rows()
         {
+            if (InputCheck.Blocked) yield return new SettingRow
+            {
+                Owner = SettingsRows.Page, Page = SettingsRows.Page, Group = Group, Label = "Keyboard input",
+                Kind = SettingControl.Info, Get = () => "Blocked by macOS, so Tab and F1-F12 do not hit. " + InputCheck.Fix,
+                Set = _ => PrismBridge.RefreshSettings(),
+            };
             yield return new SettingRow
             {
                 Owner = SettingsRows.Page, Page = SettingsRows.Page, Group = Group, Label = "Camera patch",
