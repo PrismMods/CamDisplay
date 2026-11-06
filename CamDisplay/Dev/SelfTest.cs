@@ -145,6 +145,24 @@ namespace CamDisplay
             Check(SceneWatch.Current() == CamContextKind.Editor, "the level editor is classified as the editor", SceneWatch.Describe());
             Check(!Shown(), "and the cam is hidden there by default");
 
+#if CAMDISPLAY_UMM
+            // Off in UMM means off: no camera, no cam, no windows, nothing left registered
+            yield return WaitFor(() => Main.Feed?.Texture != null, 10f);
+            PrismBridge.OpenLayoutEditor();
+            for (int i = 0; i < 5; i++) yield return null;
+            LoaderUmm.Entry.Active = false;
+            for (int i = 0; i < 10; i++) yield return null;
+            Check(!Main.Feed.HasCamera, "turning CamDisplay off in UMM releases the camera");
+            Check(!Shown(), "and hides the cam");
+            Check(!PrismBridge.EditorOpen && !PrismBridge.SettingsOpen, "and closes its windows");
+            Check(!LayoutHasCam(), "and takes the cam out of the shared layout editor");
+            yield return new WaitForSecondsRealtime(3f);
+            Check(!Main.Feed.HasCamera, "the camera stays off while CamDisplay is off");
+            LoaderUmm.Entry.Active = true;
+            yield return WaitFor(() => Main.Feed?.Texture != null, 10f);
+            Check(Main.Feed.Texture != null && LayoutHasCam(), "turning it back on brings the camera and the layout target back");
+#endif
+
             if (MacPatch.IsMac)
             {
                 Check(MacPatch.Status() == "patched", "the running game reads as camera-patched", MacPatch.Status());
@@ -163,6 +181,14 @@ namespace CamDisplay
             yield return new WaitForSecondsRealtime(1.5f);
             Log.Info("SELFTEST DONE pass=" + _pass + " fail=" + _fail);
             Application.Quit();
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static bool LayoutHasCam()
+        {
+            if (!PrismBridge.Available) return false;
+            foreach (var kv in PrismLib.Layout.All()) if (kv.Key == "CamDisplay") return true;
+            return false;
         }
 
         IEnumerator Measure(Action<float> result)
