@@ -94,15 +94,13 @@ namespace CamDisplay
             PrismLib.UI.Toolkit.Ui.TickWheel(Input.mousePosition, Input.mouseScrollDelta.y);
         }
 
-        /* Alt+Shift+C, in the Prism family (Alt+Shift+S settings, Alt+Shift+D debug): the game and
+        /* Alt+C, in the Prism family (Alt+T Topaz, Alt+P Prism settings, Alt+D debug): the game and
            its editor use Ctrl chords (Ctrl+S saves the level), never Alt, and Topaz lets Alt chords
            through its menu's key block. On macOS Unity drops some letters while Option is held, so
            the keys are read through PrismLib.UI's MacKeys (the window server) when it is there. */
-        internal const string SettingsChord = "Alt+Shift+C";
+        internal const string SettingsChord = "Alt+C";
         private static bool SettingsKeyDown() =>
-            KeyDown(KeyCode.C)
-            && (KeyHeld(KeyCode.LeftAlt) || KeyHeld(KeyCode.RightAlt))
-            && (KeyHeld(KeyCode.LeftShift) || KeyHeld(KeyCode.RightShift));
+            KeyDown(KeyCode.C) && (KeyHeld(KeyCode.LeftAlt) || KeyHeld(KeyCode.RightAlt));
 
         // MacKeys is newer than some PrismLib.UI copies another mod may have loaded: fall back to Input.
         private static bool _noMacKeys;
