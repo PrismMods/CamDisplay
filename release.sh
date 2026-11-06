@@ -38,9 +38,9 @@ done
 rm -rf build/stage CamDisplay.zip CamDisplayUmm.zip
 mkdir -p build/stage/ml/Mods build/stage/ml/UserLibs build/stage/ml/UserData/CamDisplay build/stage/umm/CamDisplay
 cp "$ML" build/stage/ml/Mods/CamDisplay.dll
-cp lib/PrismLib.UI.dll build/stage/ml/UserLibs/
+cp lib/PrismLib.UI.dll lib/Facet.0.1.dll build/stage/ml/UserLibs/
 cp lib/PrismLib.dll build/stage/ml/UserData/CamDisplay/PrismLib.bundle   # never a .dll (PrismLib/CLAUDE.md)
-cp "$UMM" Info.json lib/PrismLib.UI.dll build/stage/umm/CamDisplay/
+cp "$UMM" Info.json lib/PrismLib.UI.dll lib/Facet.0.1.dll build/stage/umm/CamDisplay/
 cp lib/PrismLib.dll build/stage/umm/CamDisplay/PrismLib.bundle
 (cd build/stage/ml && zip -qr ../../../CamDisplay.zip .)
 (cd build/stage/umm && zip -qr ../../../CamDisplayUmm.zip .)

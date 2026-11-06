@@ -18,7 +18,7 @@ if [ "$T" = ML ]; then
     rm -rf "$G/UMMMods/CamDisplay"
     mkdir -p "$G/Mods" "$G/UserLibs" "$G/UserData/CamDisplay"
     cp CamDisplay/bin/Debug/CamDisplay.dll "$G/Mods/CamDisplay.dll"
-    cp lib/PrismLib.UI.dll "$G/UserLibs/PrismLib.UI.dll"
+    cp lib/PrismLib.UI.dll lib/Facet.0.1.dll "$G/UserLibs/"
     cp lib/PrismLib.dll "$G/UserData/CamDisplay/PrismLib.bundle"   # never a .dll: see PrismLib/CLAUDE.md
     cmp -s CamDisplay/bin/Debug/CamDisplay.dll "$G/Mods/CamDisplay.dll"
     echo "Deployed ML build to $G/Mods/CamDisplay.dll"
@@ -26,7 +26,7 @@ else
     rm -f "$G/Mods/CamDisplay.dll"
     D="$G/UMMMods/CamDisplay"
     mkdir -p "$D"
-    cp CamDisplay/bin/umm/Debug/CamDisplayUmm.dll Info.json lib/PrismLib.UI.dll "$D/"
+    cp CamDisplay/bin/umm/Debug/CamDisplayUmm.dll Info.json lib/PrismLib.UI.dll lib/Facet.0.1.dll "$D/"
     cp lib/PrismLib.dll "$D/PrismLib.bundle"
     cmp -s CamDisplay/bin/umm/Debug/CamDisplayUmm.dll "$D/CamDisplayUmm.dll"
     echo "Deployed UMM build to $D"
