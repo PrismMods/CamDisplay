@@ -9,7 +9,7 @@ G=${ADOFAI_ROOT:-"$HOME/Library/Application Support/Steam/steamapps/common/A Dan
 T=${1:-}
 [ -z "$T" ] && { [ -f "$G/MelonLoader/net35/MelonLoader.dll" ] && T=ML || T=UMM; }
 [ -f lib/PrismLib.dll ] && [ -f lib/PrismLib.UI.dll ] && [ -f lib/Facet.0.1.dll ] || lib/update-prismlib.sh
-[ -f lib/Facet.0.1.dll ] || { echo "lib/Facet.0.1.dll is missing. Get it with PrismLib's tools/update-facet.sh (dev machine) or from the next PrismLib release (then lib/update-prismlib.sh)." >&2; exit 1; }
+[ -f lib/Facet.0.1.dll ] || { echo "lib/Facet.0.1.dll is missing. On a dev machine PrismLib's ./dev.sh puts it here (its tools/update-facet.sh refreshes only PrismLib's lib/); otherwise it comes with the next PrismLib release, through lib/update-prismlib.sh." >&2; exit 1; }
 [ -f native/launch/CamDisplayLaunch ] || native/launch/build.sh   # embedded into the mod
 # Quiet on success; on failure, show the compiler errors instead of exiting silently.
 xbuild CamDisplay/CamDisplay.csproj /p:LoaderTarget="$T" /p:GameRoot="$G" /verbosity:quiet > build/deploy-xbuild.log 2>&1 \
