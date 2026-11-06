@@ -34,6 +34,54 @@ namespace CamDisplay
             Log.Info((ok ? "PASS " : "FAIL ") + what + (ok || detail == "" ? "" : "  [" + detail + "]"));
         }
 
+        // Synthetic pointer input on the layout editor's panel, as LayoutProbe drives it. Down and up
+        // in one frame, so a real-mouse move between them cannot turn the click into a drag.
+        static VisualElement EditorRoot() => FindObjectsByType<UIDocument>(FindObjectsSortMode.None)
+            .FirstOrDefault(d => d.gameObject.name == "PrismLayoutEditor")?.rootVisualElement;
+
+        static void Pointer(EventType type, Vector2 screen)
+        {
+            var root = EditorRoot();
+            var layer = root?.Q("layout-layer");
+            if (layer == null) return;
+            float k = layer.layout.width / Screen.width;
+            var ev = new Event { type = type, button = 0, clickCount = 1, mousePosition = new Vector2(screen.x * k, (Screen.height - screen.y) * k) };
+            EventBase e = type == EventType.MouseDown ? PointerDownEvent.GetPooled(ev) : (EventBase)PointerUpEvent.GetPooled(ev);
+            using (e) root.panel.visualTree.SendEvent(e);
+        }
+
+        IEnumerator Click(Vector2 at)
+        {
+            Pointer(EventType.MouseDown, at);
+            Pointer(EventType.MouseUp, at);
+            yield return null; yield return null;
+        }
+
+        // The side panel: the card holding the X field, laid out and on screen.
+        static VisualElement PanelCard() => EditorRoot()?.Q<TextField>("layout-x")?.parent?.parent?.parent;
+        static bool PanelShown()
+        {
+            var c = PanelCard();
+            return c != null && c.resolvedStyle.display == DisplayStyle.Flex && c.worldBound.width > 0f && c.worldBound.height > 0f;
+        }
+        static string PanelState()
+        {
+            var c = PanelCard();
+            if (c == null) return "no X field";
+            var picked = c.panel?.Pick(c.worldBound.center);
+            bool onTop = picked != null && (picked == c || c.Contains(picked));
+            string order = string.Join(", ", FindObjectsByType<UIDocument>(FindObjectsSortMode.None)
+                .Where(d => d.rootVisualElement != null && d.rootVisualElement.resolvedStyle.display == DisplayStyle.Flex)
+                .Select(d => d.gameObject.name + "=" + (d.panelSettings != null ? d.panelSettings.sortingOrder : 0f)).ToArray());
+            return c.resolvedStyle.display + " " + c.worldBound + " opacity " + c.resolvedStyle.opacity + " visibility " + c.resolvedStyle.visibility
+                   + " children " + c.childCount + "/" + (c.childCount > 0 ? c[0].childCount : 0) + " picked-on-top " + onTop + " (" + picked?.name + ")"
+                   + " panels [" + order + "]";
+        }
+
+        // Only CamDisplay has put anything in the shared layout editor.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static bool LoneTarget() => PrismBridge.Available && PrismLib.Layout.All().Count() == 1;
+
         static RectTransform FeedRect() => GameObject.Find("CamDisplayFeed")?.GetComponent<RectTransform>();
         static bool Shown() { var r = FeedRect(); return r != null && r.gameObject.activeInHierarchy; }
 
@@ -189,6 +237,46 @@ namespace CamDisplay
             PrismBridge.OpenLayoutEditor();
             for (int i = 0; i < 5; i++) yield return null;
             Check(PrismBridge.EditorOpen, "the layout editor opens again after Escape");
+
+            // The side panel comes back after it was hidden by clicking empty space and the editor
+            // was left and reopened (reported 2026-11-07: it never did)
+            {
+                var tx = Main.Feed?.Texture;
+                var cb = CamGeometry.Box(Main.Settings, Screen.width, Screen.height, tx != null ? tx.width : 0, tx != null ? tx.height : 0);
+                var cam = new Vector2(cb[0], cb[1]);
+                var empty = new Vector2(cam.x < Screen.width / 2f ? Screen.width * 0.97f : Screen.width * 0.03f, Screen.height * 0.97f);
+                yield return Click(cam);
+                Check(PanelShown(), "clicking the cam in the editor shows the side panel", PanelState());
+                yield return Click(empty);
+                Check(!PanelShown(), "clicking empty space hides it", PanelState());
+                yield return Click(cam);
+                Check(PanelShown(), "clicking the cam again brings it back", PanelState());
+                yield return Click(empty);
+                var done = EditorRoot()?.Q<UnityEngine.UIElements.Button>("layout-done");
+                if (done != null) using (var e = NavigationSubmitEvent.GetPooled()) { e.target = done; done.SendEvent(e); }
+                for (int i = 0; i < 3; i++) yield return null;
+                Check(!PrismBridge.EditorOpen, "Done closes the editor");
+                PrismBridge.OpenLayoutEditor();
+                for (int i = 0; i < 5; i++) yield return null;
+                if (LoneTarget()) Check(PanelShown(), "the cam, the editor's only element, is selected when the editor opens", PanelState());
+                yield return Click(cam);
+                Check(PanelShown(), "after hiding the panel, leaving and reopening the editor, clicking the cam shows it again", PanelState());
+
+                // Again the way a player does it: Done, then the settings window's button, at a player's pace
+                yield return Click(empty);
+                done = EditorRoot()?.Q<UnityEngine.UIElements.Button>("layout-done");
+                if (done != null) using (var e = NavigationSubmitEvent.GetPooled()) { e.target = done; done.SendEvent(e); }
+                yield return new WaitForSecondsRealtime(0.8f);
+                var open = FindObjectsByType<UIDocument>(FindObjectsSortMode.None).FirstOrDefault(d => d.gameObject.name == "CamDisplayPanel")?
+                    .rootVisualElement.Query<UnityEngine.UIElements.Button>().ToList().FirstOrDefault(b => b.text == "Open layout editor");
+                Check(open != null, "the settings window has its Open layout editor button");
+                if (open != null) using (var e = NavigationSubmitEvent.GetPooled()) { e.target = open; open.SendEvent(e); }
+                yield return new WaitForSecondsRealtime(0.8f);
+                yield return Click(cam);
+                yield return new WaitForSecondsRealtime(0.8f);
+                Log.Info("  side panel after the settings button: " + PanelState());
+                Check(PanelShown(), "reopened from the settings window, clicking the cam shows the side panel", PanelState());
+            }
 
             PrismBridge.ToggleSettings();
             PrismBridge.CloseLayoutEditor();
