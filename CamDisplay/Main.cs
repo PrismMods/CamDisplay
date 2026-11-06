@@ -13,6 +13,8 @@ namespace CamDisplay
         internal static int SettingsVersion;
         internal static CamFeed Feed;
         internal static CamView View;
+        /// False while CamDisplay is switched off (UMM's toggle): then nothing may hold the camera.
+        internal static bool Active { get; private set; } = true;
 
         private static string SettingsPath => Path.Combine(DataDir, "CamDisplay.json");
         private static float _dirtySince = -1f;
@@ -51,6 +53,7 @@ namespace CamDisplay
 
         internal static void Update()
         {
+            if (!Active) return;
             try
             {
                 if (Feed == null) Start();
@@ -68,6 +71,7 @@ namespace CamDisplay
         // UMM's own mod page: one button into the real settings window.
         internal static void OnGui()
         {
+            if (!Active) { GUILayout.Label("CamDisplay is off: the camera is not used."); return; }
             if (GUILayout.Button("Open CamDisplay settings (Ctrl+Shift+C)", GUILayout.Width(320f))) PrismBridge.ToggleSettings();
         }
 
@@ -93,6 +97,32 @@ namespace CamDisplay
             PrismBridge.Shutdown();
             Gate.Shutdown();
             Log.Info("CamDisplay shut down");
+        }
+
+        /// Switched off: release the camera and everything CamDisplay holds; on: take it all back.
+        internal static void SetActive(bool on)
+        {
+            if (on == Active) return;
+            Active = on;
+            try
+            {
+                if (!on)
+                {
+                    Feed?.Stop();
+                    View?.Apply(Settings, null, false, SettingsVersion);
+                    PrismBridge.Deactivate();
+                    Gate.Shutdown();
+                    if (_dirtySince >= 0f) Save();
+                    Log.Info("CamDisplay off: camera released");
+                }
+                else
+                {
+                    PrismBridge.Reactivate();
+                    Feed?.Restart(Settings);
+                    Log.Info("CamDisplay on");
+                }
+            }
+            catch (Exception e) { Log.Error("toggle", e); }
         }
 
         /// A settings field changed: redraw now, write to disk within a second.

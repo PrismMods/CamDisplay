@@ -18,6 +18,8 @@ namespace CamDisplay
         internal static bool Available { get; private set; }
 
         private static object _me, _editorClaim;
+        private static string _version;
+        private static bool _hooked;   // Layout events are subscribed once, however often we re-wire
         private static LayoutEditor _editor;
         private static SettingsPanel _settings;
         private static int _devicePoll;
@@ -29,6 +31,7 @@ namespace CamDisplay
 
         internal static void Init(string version)
         {
+            _version = version;
             try
             {
                 if (!PrismLib.Bootstrap.PrismBootstrap.Ensure(Log.Info, Minimum, Main.ModsRoot, Main.BundlePath)) return;
@@ -48,9 +51,10 @@ namespace CamDisplay
             me.BindKey("Settings", (int)KeyCode.C, PrismLib.KeyMods.Ctrl | PrismLib.KeyMods.Shift, "Open CamDisplay settings");
             me.DescribeLayout(new[] { ToLayoutTarget(CamTarget()) });
             _editorClaim = me.ClaimState(PrismLib.StateKey.LayoutEditor, "shared layout editor");
-            if (_editorClaim != null)
+            if (_editorClaim != null && !_hooked)
             {
-                PrismLib.Layout.OpenRequested += () => OpenEditor(all: true);
+                _hooked = true;
+                PrismLib.Layout.OpenRequested += () => { if (_editorClaim != null) OpenEditor(all: true); };
                 PrismLib.Layout.Changed += () => { if (_editor != null && _editor.Visible) _editor.Reload(); };
             }
             me.AddLog("CamDisplay", () => ReadTail(), Log.Path);
@@ -156,6 +160,22 @@ namespace CamDisplay
         {
             if (!Available) return;
             try { Unwire(); } catch { }
+        }
+
+        /// CamDisplay switched off: close its windows and take everything out of PrismLib.
+        internal static void Deactivate()
+        {
+            try { if (_editor != null) _editor.Visible = false; } catch { }
+            try { if (_settings != null) _settings.Visible = false; } catch { }
+            if (Available) { try { Unwire(); } catch (Exception e) { Log.Error("unwire", e); } }
+            _editorClaim = null;
+        }
+
+        /// Switched back on: register again (Prism.Register hands back the same handle).
+        internal static void Reactivate()
+        {
+            if (!Available) return;
+            try { Wire(_version); } catch (Exception e) { Log.Error("rewire", e); }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

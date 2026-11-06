@@ -26,6 +26,8 @@ namespace CamDisplay
         internal static Func<string> DeniedText = () => "Camera access denied";
 
         public string Status { get; private set; } = "";
+        /// A WebCamTexture is open (playing or starting). False means the camera is released.
+        internal bool HasCamera => _tex != null;
         /// Scene-change restarts so far, and how many frames after the scene change the last one ran.
         internal int Restarts { get; private set; }
         internal int LastRestartLag { get; private set; } = -1;

@@ -38,7 +38,9 @@ restores the original signature too — enable the camera again afterwards.
 
 Once the game may use the camera, so may any mod it loads. CamDisplay keeps the camera open while
 it is enabled (starting a camera stalls the game for about a second, so it is not restarted for
-every level); turn **Enabled** off to release it.
+every level). Turning **Enabled** off, or switching CamDisplay off in UMM's mod list, releases it;
+with CamDisplay off or not installed nothing opens the camera, even with the launch options and the
+patch still in place.
 
 ## Performance
 
