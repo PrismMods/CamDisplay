@@ -38,7 +38,7 @@ namespace CamDisplay
             };
             yield return new SettingRow
             {
-                Owner = Page, Page = Page, Group = "Camera", Label = "Resolution", Kind = SettingControl.Choice,
+                Owner = Page, Page = Page, Group = "Camera", Label = "Resolution", Kind = SettingControl.Dropdown,
                 Options = ResolutionNames,
                 Get = () => Math.Max(0, Array.FindIndex(Resolutions, r => r[0] == s.Width && r[1] == s.Height && r[2] == s.Fps)),
                 Set = v =>
