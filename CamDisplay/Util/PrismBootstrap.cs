@@ -148,7 +148,10 @@ namespace PrismLib.Bootstrap
            without one throws FileNotFoundException for every Prism window. So each copy's folder
            also gets every Facet beside the newest copy that it lacks or has older — an upgraded
            copy, and one that came with a mod built before Facet. Never the shared PrismLib folder:
-           it holds PrismLib.dll alone. */
+           it holds PrismLib.dll alone.
+
+           Both mods roots count (Mods and UMMMods, whichever exist beside each other), so a
+           MelonLoader mod's copies and a UMM mod's meet. So do runtime stores, see StoreCopies. */
         public static void SyncUi()
         {
             if (_uiSynced) return;
@@ -156,13 +159,13 @@ namespace PrismLib.Bootstrap
             try
             {
                 var copies = new List<string>();
-                string root = ModsRoot();
-                if (root != null)
+                foreach (var root in Roots())
                     foreach (var d in Directory.GetDirectories(root))
                     {
                         string p = Path.Combine(d, UiDll);
                         if (!IsShared(d) && File.Exists(p)) copies.Add(p);
                     }
+                foreach (var p in StoreCopies()) if (!copies.Contains(p)) copies.Add(p);
                 string ul = UserLibs();
                 if (ul != null && File.Exists(Path.Combine(ul, UiDll))) copies.Add(Path.Combine(ul, UiDll));
 
@@ -201,6 +204,54 @@ namespace PrismLib.Bootstrap
                 }
             }
             catch (Exception e) { Say("PrismLib.UI sync failed: " + e.Message); }
+        }
+
+        /* Quartz loads its code from a versioned runtime store instead of a mod folder:
+           <mods>/<Mod>/Runtime/versions/<ver>/ under UMM, <game>/UserData/<Mod>/Runtime/versions/<ver>/
+           under MelonLoader, and PrismLib.UI ships inside it. A copy there is loaded like any other,
+           so it must agree with the rest or "first loaded wins" picks a stale one. The layout is
+           Quartz's but the rule is generic: any mod that keeps a store gets the same treatment.
+           A version folder without PrismLib.UI.dll is not a copy and is left alone. */
+        private static List<string> StoreCopies()
+        {
+            var outp = new List<string>();
+            try
+            {
+                var parents = Roots();
+                if (parents.Count == 0) return outp;
+                string ud = Path.Combine(Path.GetDirectoryName(parents[0]) ?? "", "UserData");
+                if (Directory.Exists(ud)) parents.Add(ud);
+                foreach (var parent in parents)
+                    foreach (var mod in Directory.GetDirectories(parent))
+                    {
+                        string versions = Path.Combine(mod, "Runtime", "versions");
+                        if (IsShared(mod) || !Directory.Exists(versions)) continue;
+                        foreach (var ver in Directory.GetDirectories(versions))
+                        {
+                            string p = Path.Combine(ver, UiDll);
+                            if (File.Exists(p) && !outp.Contains(p)) outp.Add(p);
+                        }
+                    }
+            }
+            catch (Exception e) { Say("runtime store scan failed: " + e.Message); }
+            return outp;
+        }
+
+        // The mods root, then its sibling (Mods beside UMMMods) when both exist: one game, two loaders.
+        private static List<string> Roots()
+        {
+            var outp = new List<string>();
+            string root = ModsRoot();
+            if (root == null) return outp;
+            outp.Add(root);
+            string game = Path.GetDirectoryName(root);
+            if (game != null)
+                foreach (var n in ModRootNames)
+                {
+                    string d = Path.Combine(game, n);
+                    if (Directory.Exists(d) && !string.Equals(Path.GetFullPath(d), root, StringComparison.OrdinalIgnoreCase)) outp.Add(d);
+                }
+            return outp;
         }
 
         // Per file: on Windows a copy another mod already loaded is locked, and that must not stop
@@ -259,15 +310,18 @@ namespace PrismLib.Bootstrap
 
                 // Beside the mod first (a shipped PrismLib.UI), then the shared folder (the
                 // installed PrismLib), then UserLibs (where a MelonLoader build puts them).
-                // Facet: beside the mod, UserLibs, then any sibling mod's folder — whichever mod's
+                // Facet: beside the mod, UserLibs, then any sibling mod's folder or runtime store — whichever mod's
                 // PrismLib.UI loaded may have come without one (SyncUi, a mod built before Facet).
                 var dirs = new List<string> { SelfDir() };
                 if (!facet) dirs.Add(_dir);
                 dirs.Add(UserLibs());
-                string root = facet ? ModsRoot() : null;
-                if (root != null)
-                    foreach (var d in Directory.GetDirectories(root))
-                        if (!IsShared(d)) dirs.Add(d);
+                if (facet)
+                {
+                    foreach (var root in Roots())
+                        foreach (var d in Directory.GetDirectories(root))
+                            if (!IsShared(d)) dirs.Add(d);
+                    foreach (var c in StoreCopies()) dirs.Add(Path.GetDirectoryName(c));
+                }
                 foreach (var dir in dirs)
                 {
                     if (dir == null) continue;
