@@ -7,26 +7,31 @@
 #                    it is an ordinary dependency and deploy/release copy it into the mod folder.
 #   Facet.<n>.dll    the engine PrismLib.UI stands on, shipped beside it. Fetched when the feed
 #                    has a "facet" entry; otherwise any copy already here is kept (PrismLib's
-#                    tools/update-facet.sh makes one on a dev machine).
+#                    ./dev.sh puts one here on a dev machine).
 set -euo pipefail
 cd "$(dirname "$0")"
 FEED=$(curl -fsS https://raw.githubusercontent.com/PrismMods/PrismLib/main/prismlib.json)
 VER=$(jq -r .version <<<"$FEED")
+FACET=$(jq -r '.facet.name // empty' <<<"$FEED")
+# The feed's name becomes a path here: only Facet.<major>.<minor>.dll, never one that leaves lib/.
+[ -z "$FACET" ] || [[ "$FACET" =~ ^Facet\.[0-9]+\.[0-9]+\.dll$ ]] || { echo "feed $VER names Facet '$FACET'; refusing" >&2; exit 1; }
 
-# Checked against the feed before it replaces anything: this is code that ships to players.
+# Every file is fetched and checked against the feed before any replaces the old one: this is code
+# that ships to players, and a half-updated lib/ would pair one release's PrismLib.UI with
+# another's Facet.
+trap 'rm -f PrismLib.dll.tmp PrismLib.UI.dll.tmp ${FACET:+"$FACET.tmp"}' EXIT
 fetch() { # url sha256 file
     curl -fsSLo "$3.tmp" "$1"
     if [ "$(shasum -a 256 "$3.tmp" | cut -d' ' -f1)" != "$2" ]; then
-        rm -f "$3.tmp"
-        echo "SHA-256 mismatch for $3 (feed $VER); kept the old copy" >&2
+        echo "SHA-256 mismatch for $3 (feed $VER); kept the old copies" >&2
         exit 1
     fi
-    mv "$3.tmp" "$3"
 }
 fetch "$(jq -r .url <<<"$FEED")" "$(jq -r .sha256 <<<"$FEED")" PrismLib.dll
 fetch "$(jq -r .ui.url <<<"$FEED")" "$(jq -r .ui.sha256 <<<"$FEED")" PrismLib.UI.dll
-if [ "$(jq -r '.facet.url // empty' <<<"$FEED")" ]; then
-    fetch "$(jq -r .facet.url <<<"$FEED")" "$(jq -r .facet.sha256 <<<"$FEED")" "$(jq -r .facet.name <<<"$FEED")"
+[ -z "$FACET" ] || fetch "$(jq -r .facet.url <<<"$FEED")" "$(jq -r .facet.sha256 <<<"$FEED")" "$FACET"
+for f in PrismLib.dll PrismLib.UI.dll ${FACET:+"$FACET"}; do mv "$f.tmp" "$f"; done
+if [ -n "$FACET" ]; then
     echo "PrismLib + PrismLib.UI + Facet now $VER"
 else
     echo "PrismLib + PrismLib.UI now $VER; the feed has no Facet yet (kept any lib/Facet.*.dll)"
