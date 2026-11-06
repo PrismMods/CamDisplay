@@ -144,6 +144,9 @@ namespace CamDisplay
 
         internal static void Shutdown()
         {
+#if DEBUG
+            SelfTest.PutBack();   // a run the game quit under
+#endif
             if (_dirtySince >= 0f) Save();
             Feed?.Stop();
             PrismBridge.Shutdown();

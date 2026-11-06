@@ -43,9 +43,43 @@ namespace CamDisplay
             while (!cond() && Time.realtimeSinceStartup < end) yield return null;
         }
 
+        /* The player's settings as they were before the run. Runs cut short (a check that threw, the
+           game quit by another mod's test) left the test's crop, position and context switches in
+           the player's file (seen 2026-11-07), so they are put back on every way out: the end of the
+           run, a check that throws, and Main.Shutdown. */
+        static string _restore;
+
+        internal static void PutBack()
+        {
+            if (_restore == null) return;
+            JsonUtility.FromJsonOverwrite(_restore, Main.Settings);
+            _restore = null;
+            Main.SaveSoon();
+        }
+
         IEnumerator Start()
         {
-            string json = JsonUtility.ToJson(Main.Settings);   // restored at the end
+            _restore = JsonUtility.ToJson(Main.Settings);
+            // The checks need the camera, and a player may have it switched off.
+            if (!Main.Settings.Enabled) { Main.Settings.Enabled = true; Main.SaveSoon(); Main.Feed?.Restart(Main.Settings); }
+            // Stepped by hand so a check that throws ends the run with DONE instead of stalling it.
+            var run = Run();
+            while (true)
+            {
+                bool more;
+                try { more = run.MoveNext(); }
+                catch (Exception e) { _fail++; Log.Error("SELFTEST aborted: a check threw", e); more = false; }
+                if (!more) break;
+                yield return run.Current;
+            }
+            PutBack();
+            yield return new WaitForSecondsRealtime(1.5f);
+            Log.Info("SELFTEST DONE pass=" + _pass + " fail=" + _fail);
+            Application.Quit();
+        }
+
+        IEnumerator Run()
+        {
             Log.Info("SELFTEST start, scene " + SceneWatch.Scene + ", screen " + Screen.width + "x" + Screen.height);
             Check(Main.Loader != null, "the mod loaded via " + Main.Loader);
             Check(PrismBridge.Available, "PrismLib is available and wired");
@@ -229,12 +263,6 @@ namespace CamDisplay
                 Check(GUIUtility.systemCopyBuffer == Launcher.Line(), "Copy puts the launch line on the clipboard");
                 Check(MacPatch.ScheduleAfterExit("undo", "apply") == "", "undo + apply are queued for game exit (checked from outside after quit)");
             }
-
-            JsonUtility.FromJsonOverwrite(json, Main.Settings);
-            Main.SaveSoon();
-            yield return new WaitForSecondsRealtime(1.5f);
-            Log.Info("SELFTEST DONE pass=" + _pass + " fail=" + _fail);
-            Application.Quit();
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
