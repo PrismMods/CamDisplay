@@ -109,8 +109,20 @@ namespace CamDisplay
             if (Available) { try { Describe(_me); } catch { } }
         }
 
+        // PrismLib's animation duration -> every Facet window's speed. Both calls are newer than a PrismLib
+        // or PrismLib.UI another mod may have loaded: one miss stops it for the session.
+        private static bool _animGone;
+        internal static void TickAnim()
+        {
+            if (_animGone || !Available) return;
+            try { SetAnim(AnimMs()); } catch (Exception) { _animGone = true; }
+        }
+        [MethodImpl(MethodImplOptions.NoInlining)] private static int AnimMs() => PrismLib.Prism.AnimDuration;
+        [MethodImpl(MethodImplOptions.NoInlining)] private static void SetAnim(int ms) => PrismLib.UI.Toolkit.Anim.Duration = ms;
+
         internal static void Tick()
         {
+            TickAnim();
             try { _editor?.Tick(); } catch (Exception e) { Log.Error("layout editor tick", e); }
             if (_settings == null || !_settings.Visible) return;
             try { _settings.Tick(); } catch (Exception e) { Log.Error("settings tick", e); }
