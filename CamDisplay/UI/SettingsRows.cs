@@ -10,12 +10,6 @@ namespace CamDisplay
        status line. PrismLib.UI ships beside the mod, so naming its types here is safe. */
     internal static class SettingsRows
     {
-        private static readonly int[][] Resolutions =
-        {
-            new[] { 640, 360, 30 }, new[] { 1280, 720, 30 }, new[] { 1920, 1080, 30 }, new[] { 1280, 720, 60 },
-        };
-        private static readonly string[] ResolutionNames = { "640×360 @ 30", "1280×720 @ 30", "1920×1080 @ 30", "1280×720 @ 60" };
-
         internal const string Page = "CamDisplay";
 
         /// Extra rows (the macOS group) appended by other parts of the mod.
@@ -27,6 +21,8 @@ namespace CamDisplay
             var feed = Main.Feed;
             string[] devices = feed != null ? feed.Devices() : new string[0];
             if (devices.Length == 0) devices = new[] { "(no camera found)" };
+            string[] modeNames;
+            var modes = Modes(s, devices, out modeNames);
 
             yield return Bool("Camera", "Enabled", () => s.Enabled, v => { s.Enabled = v; Changed(restart: true); });
             yield return new SettingRow
@@ -34,18 +30,18 @@ namespace CamDisplay
                 Owner = Page, Page = Page, Group = "Camera", Label = "Camera", Kind = SettingControl.Choice,
                 Options = devices,
                 Get = () => Math.Max(0, Array.IndexOf(devices, feed?.Device ?? s.Camera)),
-                Set = v => { int i = Convert.ToInt32(v); if (i >= 0 && i < devices.Length && devices[i] != "(no camera found)") { s.Camera = devices[i]; Changed(restart: true); } },
+                Set = v => { int i = Convert.ToInt32(v); if (i >= 0 && i < devices.Length && devices[i] != "(no camera found)") { s.Camera = devices[i]; Changed(restart: true); PrismBridge.RefreshSettings(); } },
             };
             yield return new SettingRow
             {
                 Owner = Page, Page = Page, Group = "Camera", Label = "Resolution", Kind = SettingControl.Dropdown,
-                Options = ResolutionNames,
-                Get = () => Math.Max(0, Array.FindIndex(Resolutions, r => r[0] == s.Width && r[1] == s.Height && r[2] == s.Fps)),
+                Options = modeNames,
+                Get = () => Math.Max(0, CamModes.IndexOf(modes, s.Width, s.Height, s.Fps)),
                 Set = v =>
                 {
                     int i = Convert.ToInt32(v);
-                    if (i < 0 || i >= Resolutions.Length) return;
-                    s.Width = Resolutions[i][0]; s.Height = Resolutions[i][1]; s.Fps = Resolutions[i][2];
+                    if (i < 0 || i >= modes.Count) return;
+                    s.Width = modes[i][0]; s.Height = modes[i][1]; s.Fps = modes[i][2];
                     Changed(restart: true);
                 },
             };
@@ -71,6 +67,26 @@ namespace CamDisplay
             };
 
             if (Extra != null) foreach (var r in Extra()) yield return r;
+        }
+
+        /* The camera's own modes where it can be asked (macOS), else the fixed list. The saved mode
+           stays in the list even when the camera does not offer it, marked, so the row never shows
+           a mode that is not the one asked for. Options are read once per build: picking another
+           camera reloads the window. */
+        private static List<int[]> Modes(CamSettings s, string[] devices, out string[] names)
+        {
+            bool fellBack;
+            var modes = CamModes.From(MacCamModes.Ranges(CamContext.PickDevice(s.Camera, devices, out fellBack)));
+            bool asked = modes.Count > 0;
+            if (!asked) modes.AddRange(CamModes.Fallback);
+            var list = modes.ConvertAll(CamModes.Name);
+            if (CamModes.IndexOf(modes, s.Width, s.Height, s.Fps) < 0)
+            {
+                modes.Add(new[] { s.Width, s.Height, s.Fps });
+                list.Add(CamModes.Name(modes[modes.Count - 1]) + (asked ? " (not offered by this camera)" : ""));
+            }
+            names = list.ToArray();
+            return modes;
         }
 
         internal static SettingRow Bool(string group, string label, Func<bool> get, Action<bool> set) => new SettingRow
