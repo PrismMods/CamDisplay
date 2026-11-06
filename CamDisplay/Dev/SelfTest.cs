@@ -50,6 +50,7 @@ namespace CamDisplay
             for (int i = 0; i < 5; i++) yield return null;
             var getKey = typeof(Input).GetMethod("GetKey", new[] { typeof(KeyCode) });
             var info = HarmonyLib.Harmony.GetPatchInfo(getKey);
+            Log.Info("  Input.GetKey patched by: " + (info == null ? "nobody" : string.Join(",", info.Owners)));
             Check(info != null && info.Postfixes.Count > 0, "the input gate is installed (by CamDisplay when standalone)",
                   info == null ? "no patches" : string.Join(",", info.Owners));
 
@@ -114,7 +115,10 @@ namespace CamDisplay
             yield return WaitFor(() => Main.Feed?.Texture != null, 10f);
             Check(Main.Feed?.Texture != null, "the feed is live after a scene change",
                   "after " + (Time.realtimeSinceStartup - t0).ToString("0.0") + " s, status '" + Main.Feed?.Status + "'");
-            Check(Main.Feed.Restarts == restarts, "the feed survives a scene change without a restart", (Main.Feed.Restarts - restarts) + " restart(s)");
+            // Unity stops the camera on every scene change (DontUnloadUnusedAsset did not prevent it),
+            // so the restart has to land in the load transition, a frame or two after the change.
+            Check(Main.Feed.Restarts == restarts + 1 && Main.Feed.LastRestartLag >= 0 && Main.Feed.LastRestartLag <= 2,
+                  "one restart, within 2 frames of the scene change", (Main.Feed.Restarts - restarts) + " restart(s), lag " + Main.Feed.LastRestartLag + " frames");
 
             // A camera that never delivers frames says so
             Main.Feed.OpenForTest("No Such Camera");
