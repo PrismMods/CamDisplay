@@ -48,7 +48,7 @@ namespace CamDisplay
             Version.TryParse((version ?? "0.0.0").Split('-')[0], out v);
             var me = PrismLib.Prism.Register("CamDisplay", v ?? new Version(0, 0, 0));
             _me = me;
-            me.BindKey("Settings", (int)KeyCode.C, PrismLib.KeyMods.Ctrl | PrismLib.KeyMods.Shift, "Open CamDisplay settings");
+            me.BindKey("Settings", (int)KeyCode.C, PrismLib.KeyMods.Alt | PrismLib.KeyMods.Shift, "Open CamDisplay settings");
             me.DescribeLayout(new[] { ToLayoutTarget(CamTarget()) });
             _editorClaim = me.ClaimState(PrismLib.StateKey.LayoutEditor, "shared layout editor");
             if (_editorClaim != null && !_hooked)

@@ -7,7 +7,8 @@ already has the cam in it — no OBS scene needed. Display only: CamDisplay does
   lines it up with other Prism mods' elements).
 - Horizontal and vertical flip, both on by default (a cam over the keyboard, facing back).
 - Always shown while playing a level; menus, level select and the editor are opt-in.
-- Settings: **Ctrl+Shift+C**, or the button on CamDisplay's UMM page.
+- Settings: **Alt+Shift+C** (Option+Shift+C on a Mac), the button on CamDisplay's UMM page, or
+  the shared Prism settings window (Alt+Shift+S) when another Prism mod is installed.
 
 Supports ADOFAI 3.x (tested on 3.4.0, macOS) and 2.9 (not yet tested). **Windows: untested.**
 
@@ -24,7 +25,7 @@ Supports ADOFAI 3.x (tested on 3.4.0, macOS) and 2.9 (not yet tested). **Windows
 macOS blocks the camera for ADOFAI as shipped: the game is not signed to ask for it, and when
 Steam starts the game, macOS asks *Steam* for camera access, which Steam does not have. Once:
 
-1. Open CamDisplay's settings (Ctrl+Shift+C) › **macOS camera** › **Enable camera**.
+1. Open CamDisplay's settings (Alt+Shift+C) › **macOS camera** › **Enable camera**.
 2. **Copy launch options** and paste them into Steam › ADOFAI › Properties › Launch Options
    (they put `CamDisplayLaunch` in front of the launcher you already use).
 3. Quit the game. The patch is applied as it closes (re-signing a running game is not safe).
