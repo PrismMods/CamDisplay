@@ -34,11 +34,14 @@ static class CamDisplayTest
               "out-of-range values from a file are clamped or reset so the cam stays visible");
 
         Console.WriteLine("context");
-        Check(CamContext.Classify("scnEditor", true, false) == CamContextKind.Editor, "editor playtest counts as editor");
-        Check(CamContext.Classify("scnGame", true, false) == CamContextKind.Gameplay, "playing a level is gameplay");
-        Check(CamContext.Classify("scnGame", true, true) == CamContextKind.Menu, "pause is a menu");
-        Check(CamContext.Classify("scnCLS", false, false) == CamContextKind.LevelSelect, "custom level select");
-        Check(CamContext.Classify("scnSplash", false, false) == CamContextKind.Menu, "anything else is a menu");
+        // The game plays custom levels inside scnEditor (seen in-game 2026-11-06): play mode is playing.
+        Check(CamContext.Classify("scnEditor", true, true, false) == CamContextKind.Editor, "editing in the editor is the editor");
+        Check(CamContext.Classify("scnEditor", true, false, true) == CamContextKind.Gameplay, "playing a custom level (editor scene, play mode) is gameplay");
+        Check(CamContext.Classify("scnEditor", true, true, true) == CamContextKind.Menu, "pausing a custom level is a menu");
+        Check(CamContext.Classify("1-X", true, false, false) == CamContextKind.Gameplay, "playing an official level is gameplay");
+        Check(CamContext.Classify("scnGame", true, true, false) == CamContextKind.Menu, "pause is a menu");
+        Check(CamContext.Classify("scnCLS", false, false, false) == CamContextKind.LevelSelect, "custom level select");
+        Check(CamContext.Classify("scnSplash", false, false, false) == CamContextKind.Menu, "anything else is a menu");
         Check(CamContext.ShouldShow(CamContextKind.Gameplay, d) && !CamContext.ShouldShow(CamContextKind.Editor, d), "gameplay always, editor opt-in");
         d.Enabled = false; Check(!CamContext.ShouldShow(CamContextKind.Gameplay, d), "disabled hides everywhere"); d.Enabled = true;
         bool fb;

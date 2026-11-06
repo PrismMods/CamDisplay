@@ -11,8 +11,8 @@ namespace CamDisplay
     {
         private static string _scene = "";
         private static bool _hooked, _looked;
-        private static Func<object> _controller;
-        private static Func<object, bool> _gameworld, _paused;
+        private static Func<object> _controller, _editor;
+        private static Func<object, bool> _gameworld, _paused, _playMode;
 
         public static string Scene { get { Hook(); return _scene; } }
 
@@ -36,7 +36,7 @@ namespace CamDisplay
             try { c = _controller?.Invoke(); } catch { }
             bool w = false, p = false;
             if (c != null) { try { w = _gameworld != null && _gameworld(c); } catch { } try { p = _paused != null && _paused(c); } catch { } }
-            return "scene=" + _scene + " controller=" + (c != null) + " gameworld=" + w + " paused=" + p;
+            return "scene=" + _scene + " controller=" + (c != null) + " gameworld=" + w + " paused=" + p + " editorPlaying=" + EditorPlaying();
         }
 
         private static CamContextKind Read()
@@ -50,7 +50,17 @@ namespace CamDisplay
                 try { world = _gameworld != null && _gameworld(c); } catch { }
                 try { paused = _paused != null && _paused(c); } catch { }
             }
-            return CamContext.Classify(_scene, world, paused);
+            return CamContext.Classify(_scene, world, paused, _scene == "scnEditor" && EditorPlaying());
+        }
+
+        // scnEditor.instance.playMode: true while a level plays in the editor scene (a custom level
+        // from the browser, or a playtest), false while editing.
+        private static bool EditorPlaying()
+        {
+            object e = null;
+            try { e = _editor?.Invoke(); } catch { }
+            if (e == null || _playMode == null) return false;
+            try { return _playMode(e); } catch { return false; }
         }
 
         private static void Hook()
@@ -68,7 +78,10 @@ namespace CamDisplay
             _controller = Static(t, "instance");
             _gameworld = Bool(t, "gameworld");
             _paused = Bool(t, "paused");
-            Log.Info("scene watch: instance " + (_controller != null) + ", gameworld " + (_gameworld != null) + ", paused " + (_paused != null));
+            var ed = Type.GetType("scnEditor, Assembly-CSharp");
+            if (ed != null) { _editor = Static(ed, "instance"); _playMode = Bool(ed, "playMode"); }
+            Log.Info("scene watch: instance " + (_controller != null) + ", gameworld " + (_gameworld != null) + ", paused " + (_paused != null)
+                     + ", editor.playMode " + (_editor != null && _playMode != null));
         }
 
         private const BindingFlags All = BindingFlags.Public | BindingFlags.NonPublic;

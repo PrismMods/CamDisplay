@@ -5,12 +5,13 @@ namespace CamDisplay
     // Where the player is, and whether the cam shows there. BCL only (offline-tested).
     internal static class CamContext
     {
-        /* scnEditor is the editor even while playtesting (a clear is recorded from a real level);
-           a paused level counts as a menu; the level selects are the world map and the custom
-           level browser. Everything else is a menu. */
-        internal static CamContextKind Classify(string scene, bool gameworld, bool paused)
+        /* The game plays custom levels INSIDE scnEditor, in play mode (seen in-game 2026-11-06),
+           so the editor scene is "editor" only while editing; in play mode it is a level like any
+           other (an editor playtest included). A paused level counts as a menu; the level selects
+           are the world map and the custom level browser. Everything else is a menu. */
+        internal static CamContextKind Classify(string scene, bool gameworld, bool paused, bool editorPlaying)
         {
-            if (scene == "scnEditor") return CamContextKind.Editor;
+            if (scene == "scnEditor" && !editorPlaying) return CamContextKind.Editor;
             if (gameworld && !paused) return CamContextKind.Gameplay;
             if (scene == "scnLevelSelect" || scene == "scnCLS") return CamContextKind.LevelSelect;
             return CamContextKind.Menu;
