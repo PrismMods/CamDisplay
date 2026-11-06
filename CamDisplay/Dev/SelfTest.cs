@@ -82,6 +82,32 @@ namespace CamDisplay
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         static bool LoneTarget() => PrismBridge.Available && PrismLib.Layout.All().Count() == 1;
 
+        // The animation setting (PrismLib "anim.duration"): described by PrismLib, and the bridge carries it to Facet.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static bool AnimListed() => PrismLib.Settings.Search("animation").Any(kv => kv.Value.Id == PrismLib.Prism.AnimKey && kv.Key == "PrismLib");
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static string AnimGet() => PrismLib.Config.Get(PrismLib.Prism.AnimKey);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static void AnimSet(string v) => PrismLib.Config.Set(PrismLib.Prism.AnimKey, v);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static int AnimRead() => PrismLib.Prism.AnimDuration;
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static int FacetAnim() => PrismLib.UI.Toolkit.Anim.Duration;
+
+        IEnumerator AnimChecks()
+        {
+            if (!PrismBridge.Available) yield break;
+            string was = AnimGet();
+            Check(AnimListed(), "PrismLib lists the animation duration setting");
+            AnimSet("240");
+            yield return WaitFor(() => FacetAnim() == 240, 1f);
+            Check(FacetAnim() == 240, "the animation setting reaches Facet within a second", "Anim.Duration " + FacetAnim());
+            AnimSet("fast");
+            Check(AnimRead() == 120, "an unparsable animation duration reads 120", AnimRead().ToString());
+            AnimSet(was ?? "120");
+            yield return WaitFor(() => FacetAnim() == AnimRead(), 1f);
+        }
+
         static RectTransform FeedRect() => GameObject.Find("CamDisplayFeed")?.GetComponent<RectTransform>();
         static bool Shown() { var r = FeedRect(); return r != null && r.gameObject.activeInHierarchy; }
 
@@ -131,6 +157,7 @@ namespace CamDisplay
             Log.Info("SELFTEST start, scene " + SceneWatch.Scene + ", screen " + Screen.width + "x" + Screen.height);
             Check(Main.Loader != null, "the mod loaded via " + Main.Loader);
             Check(PrismBridge.Available, "PrismLib is available and wired");
+            yield return AnimChecks();
             for (int i = 0; i < 5; i++) yield return null;
             var getKey = typeof(Input).GetMethod("GetKey", new[] { typeof(KeyCode) });
             var info = HarmonyLib.Harmony.GetPatchInfo(getKey);
