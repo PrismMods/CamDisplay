@@ -10,6 +10,10 @@ cd "$(dirname "$0")"
 G=${ADOFAI_ROOT:-"$HOME/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice"}
 VER=${1:-}
 
+[ "${CAMDISPLAY_LOCAL_PRISMLIB:-0}" = 1 ] || lib/update-prismlib.sh
+# Checked before anything is bumped: both zips ship Facet beside PrismLib.UI, and the feed may not carry it yet.
+[ -f lib/Facet.0.1.dll ] || { echo "lib/Facet.0.1.dll is missing: the PrismLib feed has no Facet yet (on a dev machine PrismLib's ./dev.sh puts one here). Nothing was bumped." >&2; exit 1; }
+
 if [ -n "$VER" ]; then
     NUM=$(sed -E 's/^([0-9]+(\.[0-9]+)*).*/\1/' <<<"$VER")
     while [ "$(tr -cd . <<<"$NUM" | wc -c | tr -d ' ')" -lt 3 ]; do NUM="$NUM.0"; done
@@ -19,7 +23,6 @@ if [ -n "$VER" ]; then
     echo "stamped $VER"
 fi
 
-[ "${CAMDISPLAY_LOCAL_PRISMLIB:-0}" = 1 ] || lib/update-prismlib.sh
 bash native/launch/build.sh
 bash native/launch/test.sh
 bash tools/test.sh
