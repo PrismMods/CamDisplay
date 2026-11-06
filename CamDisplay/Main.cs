@@ -73,7 +73,13 @@ namespace CamDisplay
                 Gate.Tick();
                 InputCheck.Tick();
                 // Our own keys and the Prism polls read real input even while a window withholds it.
-                PrismLib.UI.Toolkit.InputGate.Exempt(Polls);
+                if (!_uiBroken)
+                    try { PrismLib.UI.Toolkit.InputGate.Exempt(Polls); }
+                    catch (Exception e) when (LoadFailure(e))
+                    {
+                        _uiBroken = true;
+                        Log.Error("Prism windows are off until the game restarts: PrismLib.UI cannot load a part it needs", e);
+                    }
                 if (_dirtySince >= 0f && Time.unscaledTime - _dirtySince >= 1f) Save();
             }
             catch (Exception e) { Log.Error("update", e); }
@@ -84,6 +90,21 @@ namespace CamDisplay
         {
             if (!Active) { GUILayout.Label("CamDisplay is off: the camera is not used."); return; }
             if (GUILayout.Button("Open CamDisplay settings (" + SettingsChord + ")", GUILayout.Width(320f))) PrismBridge.ToggleSettings();
+        }
+
+        /* A PrismLib.UI whose Facet was missing when its reference was first resolved fails the same
+           way on every call for the rest of the session: Mono remembers a missing reference and never
+           asks again, even once another mod has loaded Facet. Retrying threw and logged once per
+           frame (2486 lines in 26 s, 2026-11-07) and skipped the settings save below it, so the
+           windows go off for the session instead; the camera keeps running. */
+        private static bool _uiBroken;
+
+        private static bool LoadFailure(Exception e)
+        {
+            for (; e != null; e = e.InnerException)
+                if (e is System.IO.FileNotFoundException || e is System.IO.FileLoadException || e is TypeLoadException
+                    || e is BadImageFormatException || e is MissingMemberException) return true;
+            return false;
         }
 
         private static void Polls()
