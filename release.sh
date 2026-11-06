@@ -12,7 +12,7 @@ VER=${1:-}
 
 [ "${CAMDISPLAY_LOCAL_PRISMLIB:-0}" = 1 ] || lib/update-prismlib.sh
 # Checked before anything is bumped: both zips ship Facet beside PrismLib.UI, and the feed may not carry it yet.
-[ -f lib/Facet.0.1.dll ] || { echo "lib/Facet.0.1.dll is missing: the PrismLib feed has no Facet yet (on a dev machine PrismLib's ./dev.sh puts one here). Nothing was bumped." >&2; exit 1; }
+[ -f lib/Facet.0.2.dll ] || { echo "lib/Facet.0.2.dll is missing: the PrismLib feed has no Facet yet (on a dev machine PrismLib's ./dev.sh puts one here). Nothing was bumped." >&2; exit 1; }
 
 if [ -n "$VER" ]; then
     NUM=$(sed -E 's/^([0-9]+(\.[0-9]+)*).*/\1/' <<<"$VER")
@@ -41,9 +41,9 @@ done
 rm -rf build/stage CamDisplay.zip CamDisplayUmm.zip
 mkdir -p build/stage/ml/Mods build/stage/ml/UserLibs build/stage/ml/UserData/CamDisplay build/stage/umm/CamDisplay
 cp "$ML" build/stage/ml/Mods/CamDisplay.dll
-cp lib/PrismLib.UI.dll lib/Facet.0.1.dll build/stage/ml/UserLibs/
+cp lib/PrismLib.UI.dll lib/Facet.0.2.dll build/stage/ml/UserLibs/
 cp lib/PrismLib.dll build/stage/ml/UserData/CamDisplay/PrismLib.bundle   # never a .dll (PrismLib/CLAUDE.md)
-cp "$UMM" Info.json lib/PrismLib.UI.dll lib/Facet.0.1.dll build/stage/umm/CamDisplay/
+cp "$UMM" Info.json lib/PrismLib.UI.dll lib/Facet.0.2.dll build/stage/umm/CamDisplay/
 cp lib/PrismLib.dll build/stage/umm/CamDisplay/PrismLib.bundle
 (cd build/stage/ml && zip -qr ../../../CamDisplay.zip .)
 (cd build/stage/umm && zip -qr ../../../CamDisplayUmm.zip .)
