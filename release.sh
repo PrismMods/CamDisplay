@@ -33,7 +33,7 @@ for T in ML UMM; do
 done
 ML=CamDisplay/bin/Release/CamDisplay.dll
 UMM=CamDisplay/bin/umm/Release/CamDisplayUmm.dll
-../PrismLib/tools/check-bridge.sh "$PWD/$UMM" CamDisplay.PrismBridge Init Tick OpenLayoutEditor Shutdown CamTarget ToggleSettings RefreshSettings
+../PrismLib/tools/check-bridge.sh "$PWD/$UMM" CamDisplay.PrismBridge Init Tick TickAnim OpenLayoutEditor Shutdown CamTarget ToggleSettings RefreshSettings
 for d in "$ML" "$UMM"; do
     if strings "$d" | grep -q 'SELFTEST'; then echo "ERROR: $d contains the DEBUG self-test" >&2; exit 1; fi
 done
