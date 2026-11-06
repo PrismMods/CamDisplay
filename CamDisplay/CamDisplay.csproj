@@ -101,6 +101,7 @@
         <Compile Include="Mac\Launcher.cs" />
         <Compile Include="Mac\MacRows.cs" />
         <Compile Include="Mac\InputCheck.cs" />
+        <Compile Include="Mac\MacCamModes.cs" />
     </ItemGroup>
     <ItemGroup>
         <!-- xbuild drops an extensionless resource, so the launcher is embedded from a .bin copy. -->
