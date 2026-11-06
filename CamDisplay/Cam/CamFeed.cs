@@ -26,8 +26,9 @@ namespace CamDisplay
         internal static Func<string> DeniedText = () => "Camera access denied";
 
         public string Status { get; private set; } = "";
-        /// Scene-change restarts so far (the self-test checks that there are none).
+        /// Scene-change restarts so far, and how many frames after the scene change the last one ran.
         internal int Restarts { get; private set; }
+        internal int LastRestartLag { get; private set; } = -1;
         public string Device { get; private set; }
         public event Action StatusChanged;
 
@@ -112,13 +113,15 @@ namespace CamDisplay
             }
             if (_sceneChangeFrame >= 0 && Time.frameCount - _sceneChangeFrame <= SceneStopWindow)
             {
+                LastRestartLag = Time.frameCount - _sceneChangeFrame;
                 _sceneChangeFrame = -1;
                 _wasPlaying = false;
                 Restarts++;
                 float t0 = Time.realtimeSinceStartup;
                 _tex.Play();
                 _openedAt = Time.realtimeSinceStartup;
-                Log.Info("camera stopped by a scene change; restarted (Play took " + ((_openedAt - t0) * 1000f).ToString("0") + " ms)");
+                Log.Info("camera stopped by a scene change; restarted " + LastRestartLag + " frame(s) after it (Play took "
+                         + ((_openedAt - t0) * 1000f).ToString("0") + " ms)");
                 return;
             }
             if (!_reportedStop)
@@ -154,10 +157,6 @@ namespace CamDisplay
             try
             {
                 _tex = new WebCamTexture(name, _s.Width, _s.Height, _s.Fps);
-                // Unity stopped the camera on every scene change (macOS, 3.4.0); if that is it
-                // treating the texture as unused on scene unload, this keeps it — and a level retry
-                // then pays no Play() at the countdown. Unverified: the restart path stays.
-                _tex.hideFlags = HideFlags.DontUnloadUnusedAsset;
                 float t0 = Time.realtimeSinceStartup;
                 _tex.Play();
                 _openedAt = Time.realtimeSinceStartup;
