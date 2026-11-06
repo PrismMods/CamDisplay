@@ -84,7 +84,12 @@ namespace CamDisplay
 
         // The animation setting (PrismLib "anim.duration"): described by PrismLib, and the bridge carries it to Facet.
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        static bool AnimListed() => PrismLib.Settings.Search("animation").Any(kv => kv.Value.Id == PrismLib.Prism.AnimKey && kv.Key == "PrismLib");
+        static bool AnimListed()
+        {
+            foreach (var kv in PrismLib.Settings.Search("animation"))
+                if (kv.Value.Id == PrismLib.Prism.AnimKey && kv.Key == "PrismLib") return true;
+            return false;
+        }
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         static string AnimGet() => PrismLib.Config.Get(PrismLib.Prism.AnimKey);
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
