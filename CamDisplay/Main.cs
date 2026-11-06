@@ -18,6 +18,8 @@ namespace CamDisplay
 
         private static string SettingsPath => Path.Combine(DataDir, "CamDisplay.json");
         private static float _dirtySince = -1f;
+        private static CamContextKind _lastCtx = (CamContextKind)(-1);
+        private static bool _lastShow;
 
         internal static void Setup(string modDir, string dataDir, string modsRoot, string bundlePath, string version, string loader)
         {
@@ -58,7 +60,14 @@ namespace CamDisplay
             {
                 if (Feed == null) Start();
                 Feed.Tick();
-                bool show = CamContext.ShouldShow(SceneWatch.Current(), Settings);
+                var ctx = SceneWatch.Current();
+                bool show = CamContext.ShouldShow(ctx, Settings);
+                if (ctx != _lastCtx || show != _lastShow)
+                {
+                    // Once per change: the answer to "why is the cam (not) on screen?"
+                    _lastCtx = ctx; _lastShow = show;
+                    Log.Info("context " + ctx + " (" + SceneWatch.Describe() + "): cam " + (show ? "shown" : "hidden"));
+                }
                 View.Apply(Settings, Feed.Texture, show || PrismBridge.EditorOpen, SettingsVersion);
                 Gate.Tick();
                 // Our own keys and the Prism polls read real input even while a window withholds it.
