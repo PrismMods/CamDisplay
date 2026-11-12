@@ -113,6 +113,60 @@ namespace CamDisplay
             yield return WaitFor(() => FacetAnim() == AnimRead(), 1f);
         }
 
+        // Smooth scrolling (PrismLib "scroll.smooth").
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static string ConfigPath() => PrismLib.Config.FilePath;
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static void SmoothSet(string v) => PrismLib.Config.Set(PrismLib.Prism.SmoothKey, v);
+        // Config has no remove: after the file is put back, its cache must go too, or a missing key reads the test's value.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static void DropConfigCache() => typeof(PrismLib.Config)
+            .GetField("_values", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).SetValue(null, null);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static bool FacetSmooth() => PrismLib.UI.Toolkit.Anim.SmoothScroll;
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static void FacetSmooth(bool on) => PrismLib.UI.Toolkit.Anim.SmoothScroll = on;
+
+        /* CamDisplay's OWN copy of scroll.smooth reaches Facet. Every Prism bridge copies the same value each frame, so
+           waiting would pass without ours: Facet's flag is set the other way as a sentinel, then one TickAnim and a read
+           in the same frame. The cases pin PrismLib's parse rule (only a trimmed "0"/"false" is off). The settings file
+           goes back byte for byte, so a missing scroll.smooth stays missing. */
+        void SmoothCheck()
+        {
+            if (!PrismBridge.Available) return;
+            string path = ConfigPath();
+            byte[] before = path != null && File.Exists(path) ? File.ReadAllBytes(path) : null;
+            string[] stored = { "0", "1", "False", " 0 ", "garbage", "" };
+            bool[] want = { false, true, false, false, true, true };
+            bool ok = true;
+            string got = "";
+            try
+            {
+                for (int i = 0; i < stored.Length; i++)
+                {
+                    SmoothSet(stored[i]);
+                    FacetSmooth(!want[i]);
+                    PrismBridge.TickAnim();
+                    ok &= FacetSmooth() == want[i];
+                    got += "'" + stored[i] + "':" + FacetSmooth() + " ";
+                }
+            }
+            finally
+            {
+                if (path != null)
+                {
+                    if (before != null) File.WriteAllBytes(path, before);
+                    else if (File.Exists(path)) File.Delete(path);
+                }
+                DropConfigCache();
+                PrismBridge.TickAnim();
+            }
+            Check(ok, "scroll.smooth reaches Facet in CamDisplay's own tick, read by PrismLib's rule", got);
+            byte[] after = path != null && File.Exists(path) ? File.ReadAllBytes(path) : null;
+            Check(before == null ? after == null : after != null && before.SequenceEqual(after),
+                  "PrismLib's settings file is put back as it was", (before == null ? "absent" : before.Length + " bytes") + " -> " + (after == null ? "absent" : after.Length + " bytes"));
+        }
+
         static RectTransform FeedRect() => GameObject.Find("CamDisplayFeed")?.GetComponent<RectTransform>();
         static bool Shown() { var r = FeedRect(); return r != null && r.gameObject.activeInHierarchy; }
 
@@ -163,6 +217,7 @@ namespace CamDisplay
             Check(Main.Loader != null, "the mod loaded via " + Main.Loader);
             Check(PrismBridge.Available, "PrismLib is available and wired");
             yield return AnimChecks();
+            SmoothCheck();
             for (int i = 0; i < 5; i++) yield return null;
             var getKey = typeof(Input).GetMethod("GetKey", new[] { typeof(KeyCode) });
             var info = HarmonyLib.Harmony.GetPatchInfo(getKey);

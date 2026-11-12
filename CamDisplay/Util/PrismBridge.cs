@@ -109,16 +109,28 @@ namespace CamDisplay
             if (Available) { try { Describe(_me); } catch { } }
         }
 
-        // PrismLib's animation duration -> every Facet window's speed. Both calls are newer than a PrismLib
-        // or PrismLib.UI another mod may have loaded: one miss stops it for the session.
-        private static bool _animGone;
+        // PrismLib's animation duration and smooth scrolling -> every Facet window. Each copy is newer than a
+        // PrismLib or PrismLib.UI another mod may have loaded, so each has its own guard: a miss stops only that
+        // copy for the session (an old PrismLib without AnimDuration must not stop the smooth copy).
+        private static bool _animGone, _smoothGone;
         internal static void TickAnim()
         {
-            if (_animGone || !Available) return;
-            try { SetAnim(AnimMs()); } catch (Exception) { _animGone = true; }
+            if (!Available) return;
+            if (!_animGone) { try { SetAnim(AnimMs()); } catch (Exception) { _animGone = true; } }
+            if (!_smoothGone) { try { SetSmooth(SmoothOn(SmoothRaw())); } catch (Exception) { _smoothGone = true; } }
         }
         [MethodImpl(MethodImplOptions.NoInlining)] private static int AnimMs() => PrismLib.Prism.AnimDuration;
         [MethodImpl(MethodImplOptions.NoInlining)] private static void SetAnim(int ms) => PrismLib.UI.Toolkit.Anim.Duration = ms;
+        // Through Config, never Prism.SmoothScroll, which a published 0.3.12 lacks (the key const compiles to its literal).
+        [MethodImpl(MethodImplOptions.NoInlining)] private static string SmoothRaw() => PrismLib.Config.Get(PrismLib.Prism.SmoothKey);
+        [MethodImpl(MethodImplOptions.NoInlining)] private static void SetSmooth(bool on) => PrismLib.UI.Toolkit.Anim.SmoothScroll = on;
+        // PrismLib's rule: off only for a trimmed "0" or "false" (any case); missing, empty or anything else is on,
+        // so not Config.GetBool, which reads garbage as off.
+        private static bool SmoothOn(string stored)
+        {
+            string v = (stored ?? "").Trim();
+            return v != "0" && !v.Equals("false", StringComparison.OrdinalIgnoreCase);
+        }
 
         internal static void Tick()
         {
