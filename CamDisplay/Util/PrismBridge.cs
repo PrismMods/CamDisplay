@@ -12,7 +12,10 @@ namespace CamDisplay
            this class loads, before Ensure() can install the library.
          - Every method that names a PrismLib.dll type runs only after Available, and no file
            outside this one names one.
-       PrismLib.UI types are fine anywhere: that assembly ships beside the mod. */
+       PrismLib.UI types are fine anywhere: that assembly ships beside the mod.
+       The editor's mod filter (Layout.RequestOpen(owner), Layout.RequestedOwner, LayoutEditor.Filter) is newer
+       than Minimum: each is named only in a NoInlining helper behind a reflection probe, so an older copy that
+       another mod loaded leaves the filter off with one log line. */
     internal static class PrismBridge
     {
         internal static bool Available { get; private set; }
@@ -54,7 +57,13 @@ namespace CamDisplay
             if (_editorClaim != null && !_hooked)
             {
                 _hooked = true;
-                PrismLib.Layout.OpenRequested += () => { if (_editorClaim != null) OpenEditor(all: true); };
+                // _editorClaim stays set after Claims.ReleaseAll, so ask who holds the claim now: a stale
+                // handler would open a second editor beside the new host's.
+                PrismLib.Layout.OpenRequested += () =>
+                {
+                    if (_editorClaim != null && PrismLib.Claims.OwnerOf(PrismLib.StateKey.LayoutEditor) == "CamDisplay")
+                        OpenEditor(true, HostFocus());
+                };
                 PrismLib.Layout.Changed += () => { if (_editor != null && _editor.Visible) _editor.Reload(); };
             }
             me.AddLog("CamDisplay", () => ReadTail(), Log.Path);
@@ -148,13 +157,23 @@ namespace CamDisplay
         internal static void OpenLayoutEditor()
         {
             if (Available && _editorClaim == null) { RequestOpenShared(); return; }
-            OpenEditor(all: Available);
+            OpenEditor(Available, "CamDisplay");
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void RequestOpenShared() => PrismLib.Layout.RequestOpen();
+        private static void RequestOpenShared()
+        {
+            try
+            {
+                if (RequestFor()) { RequestOpenForImpl("CamDisplay"); return; }
+                FilterOffLog("this PrismLib has no Layout.RequestOpen(owner)");
+            }
+            catch (Exception e) { FilterOffLog(e.Message); }
+            PrismLib.Layout.RequestOpen();
+        }
 
-        private static void OpenEditor(bool all)
+        /// `focus`: the owner whose tab the editor opens on, null for All.
+        private static void OpenEditor(bool all, string focus)
         {
             if (_editor == null || _editorAll != all)
             {
@@ -163,7 +182,52 @@ namespace CamDisplay
                 _editor = all ? new LayoutEditor(AllTargets) : new LayoutEditor(OwnTargets);
                 _editor.Closed += () => Log.Info("layout editor closed");
             }
+            try
+            {
+                if (FilterUi()) SetFilterImpl(_editor, focus);
+                else FilterOffLog("this PrismLib.UI has no LayoutEditor.Filter");
+            }
+            catch (Exception e) { FilterOffLog(e.Message); }
             _editor.Visible = true;
+        }
+
+        // ── The mod filter: newer than Minimum, so probed ───────────────────
+
+        private static bool _filterLogged;   // survives Reactivate: a re-wire adds no second line
+
+        private static void FilterOffLog(string why)
+        {
+            if (_filterLogged) return;
+            _filterLogged = true;
+            Log.Info("layout filter off: " + why);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool FilterUi() => typeof(LayoutEditor).GetProperty("Filter") != null;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void SetFilterImpl(LayoutEditor e, string owner) => e.Filter = owner;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool RequestFor() => typeof(PrismLib.Layout).GetMethod("RequestOpen", new[] { typeof(string) }) != null;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void RequestOpenForImpl(string owner) => PrismLib.Layout.RequestOpen(owner);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string RequestedOwnerImpl() => PrismLib.Layout.RequestedOwner;
+
+        /// The owner a request being raised named; null (All) for a request naming none or an older PrismLib.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string HostFocus()
+        {
+            try
+            {
+                if (RequestFor()) return RequestedOwnerImpl();
+                FilterOffLog("this PrismLib has no Layout.RequestOpen(owner)");
+            }
+            catch (Exception e) { FilterOffLog(e.Message); }
+            return null;
         }
 
         internal static bool EditorOpen => _editor != null && _editor.Visible;
