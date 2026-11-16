@@ -282,6 +282,12 @@ namespace CamDisplay
             PrismBridge.OpenLayoutEditor();
             for (int i = 0; i < 10; i++) yield return null;
             Check(PrismBridge.EditorOpen, "the layout editor opens");
+            // Read through the bar's userData, so the check names no PrismLib type and holds whichever mod hosts.
+            var shown = FindObjectsByType<UIDocument>(FindObjectsSortMode.None)
+                .FirstOrDefault(d => d.gameObject.name == "PrismLayoutEditor" && d.rootVisualElement != null
+                                     && d.rootVisualElement.resolvedStyle.display != DisplayStyle.None);
+            string filter = shown?.rootVisualElement.Q("layout-filter")?.userData as string;
+            Check(filter == "CamDisplay", "the layout editor opens on CamDisplay's tab", filter ?? "null");
             PrismBridge.ToggleSettings();
             for (int i = 0; i < 10; i++) yield return null;
             Check(PrismBridge.SettingsOpen, "the settings window opens");
