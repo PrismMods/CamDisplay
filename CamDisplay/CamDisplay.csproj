@@ -94,7 +94,7 @@
         <Compile Include="Cam\CamView.cs" />
         <Compile Include="Cam\SceneWatch.cs" />
         <Compile Include="Util\PrismBridge.cs" />
-        <Compile Include="Util\Gate.cs" />
+        <Compile Include="Util\PrismGate.cs" />
         <Compile Include="UI\SettingsRows.cs" />
         <Compile Include="Dev\SelfTest.cs" />
         <Compile Include="Mac\MacPatch.cs" />

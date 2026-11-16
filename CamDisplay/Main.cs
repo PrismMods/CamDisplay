@@ -70,7 +70,7 @@ namespace CamDisplay
                     Log.Info("context " + ctx + " (" + SceneWatch.Describe() + "): cam " + (show ? "shown" : "hidden"));
                 }
                 View.Apply(Settings, Feed.Texture, show || PrismBridge.EditorOpen, SettingsVersion);
-                Gate.Tick();
+                PrismLib.Bootstrap.PrismGate.Tick("CamDisplay", "PrismMods.CamDisplay");
                 InputCheck.Tick();
                 // Our own keys and the Prism polls read real input even while a window withholds it.
                 if (!_uiBroken)
@@ -150,7 +150,7 @@ namespace CamDisplay
             if (_dirtySince >= 0f) Save();
             Feed?.Stop();
             PrismBridge.Shutdown();
-            Gate.Shutdown();
+            PrismLib.Bootstrap.PrismGate.Shutdown("CamDisplay");
             InputCheck.Dispose();
             Log.Info("CamDisplay shut down");
         }
@@ -167,7 +167,7 @@ namespace CamDisplay
                     Feed?.Stop();
                     View?.Apply(Settings, null, false, SettingsVersion);
                     PrismBridge.Deactivate();
-                    Gate.Shutdown();
+                    PrismLib.Bootstrap.PrismGate.Shutdown("CamDisplay");
                     InputCheck.Dispose();
                     if (_dirtySince >= 0f) Save();
                     Log.Info("CamDisplay off: camera released");
