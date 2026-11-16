@@ -5,6 +5,7 @@
 # Produces CamDisplay.zip (MelonLoader) and CamDisplayUmm.zip (UMM).
 # Ships the latest PUBLISHED PrismLib (lib/update-prismlib.sh): release PrismLib first. For a
 # packaging check against the local PrismLib build, run with CAMDISPLAY_LOCAL_PRISMLIB=1.
+# The bridge check runs from the PrismLib checkout beside this one; PRISMLIB=<dir> picks another.
 set -euo pipefail
 cd "$(dirname "$0")"
 G=${ADOFAI_ROOT:-"$HOME/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice"}
@@ -33,7 +34,7 @@ for T in ML UMM; do
 done
 ML=CamDisplay/bin/Release/CamDisplay.dll
 UMM=CamDisplay/bin/umm/Release/CamDisplayUmm.dll
-../PrismLib/tools/check-bridge.sh "$PWD/$UMM" CamDisplay.PrismBridge Init Tick TickAnim OpenLayoutEditor Shutdown CamTarget ToggleSettings RefreshSettings
+"${PRISMLIB:-../PrismLib}"/tools/check-bridge.sh "$PWD/$UMM" CamDisplay.PrismBridge Init Tick TickAnim OpenLayoutEditor Shutdown CamTarget ToggleSettings RefreshSettings
 for d in "$ML" "$UMM"; do
     if strings "$d" | grep -q 'SELFTEST'; then echo "ERROR: $d contains the DEBUG self-test" >&2; exit 1; fi
 done
