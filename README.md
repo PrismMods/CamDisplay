@@ -15,7 +15,8 @@ Supports ADOFAI 3.x (tested on 3.4.0, macOS) and 2.9 (not yet tested). **Windows
 ## Install
 
 **MelonLoader** (recommended): extract `CamDisplay.zip` into the game folder. It puts
-`Mods/CamDisplay.dll`, `UserLibs/PrismLib.UI.dll` and `UserData/CamDisplay/PrismLib.bundle` in place.
+`Mods/CamDisplay.dll`, `UserLibs/PrismLib.UI.dll`, `UserLibs/Facet.0.2.dll` and
+`UserData/CamDisplay/PrismLib.bundle` in place.
 
 **UnityModManager**: extract `CamDisplayUmm.zip` into `…/A Dance of Fire and Ice/Mods/` (or
 `UMMMods/` under MelonLoader's UMM bridge). Install only one of the two.
